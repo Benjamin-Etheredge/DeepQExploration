@@ -107,6 +107,8 @@ class ReplayBuffer:
         return [item.isDone for item in self.buffer]
 
     def append(self, experience):
+        if self.isFull():
+            self.dequeueFromReplayBuffer()
         self.buffer.append(experience)
 
     def sample(self, numberOfSamples):
@@ -116,7 +118,12 @@ class ReplayBuffer:
     def randomSample(self, numberOfSamples):
         return ReplayBuffer(numberOfSamples, buffer=random.sample(self.buffer, numberOfSamples))
 
+    def log(self):
+        print("info - start buffer size: {0}".format(self.startLength))
+        print("info - max buffer size: {0}".format(self.maxLength))
+
     # Reservoir Sampling
+    #TODO why did this have such POOR performance compared to random.sample????
     # Returns a sample of input data
     def reservoirSampling(self, numberOfSamples):
         logging.debug('Sampling')
