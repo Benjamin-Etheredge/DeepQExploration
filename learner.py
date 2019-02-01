@@ -5,13 +5,11 @@ from tensorflow._api.v1 import keras
 
 
 class DeepQ:
-    def __init__(self,
-                 inputDiminsion,
-                 outputDiminsion,
+    def __init__(self, inputDiminsion, outputDiminsion,
                  nodesPerLayer=128,  # TODO difference between 128 vs 256
                  numLayers=2,
                  batchSize=32,
-                 gamma=0.995,
+                 gamma=0.991,
                  # gamma=0.999,
                  learningRate=0.0005
                  # LRdecayRate=0.
