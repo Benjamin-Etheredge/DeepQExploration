@@ -9,13 +9,13 @@ from scores import *
 
 class Agent:
     def __init__(self, learner, replayBuffer, environmentName,
-                 experienceMaxThreshold=150000,
-                 experienceStartThreshold=100000,
+                 experienceMaxThreshold=100000,
+                 experienceStartThreshold=50000,
                  rewardThreshold=220,  # TODO could be higher
                  sampleSize=32,
-                 targetNetworkThreshold=4000,  # threshold for updating target network
-                 logThreshold=2000,
-                 randomChoiceDecayRate=0.999995,
+                 targetNetworkThreshold=2000,  # threshold for updating target network
+                 logThreshold=5000,
+                 randomChoiceDecayRate=0.99999,
                  randomChoiceMinRate=0.1
                  ):
 
@@ -66,8 +66,8 @@ class Agent:
             logging.debug('selecting non-randomly')
             return self.learner.getNextAction(state)
 
-    def decayRandomChoicPercentage(self):
-        logging.debug('decayRandomChoic')
+    def decayRandomChoicePercentage(self):
+        logging.debug('decayRandomChoice')
         self.randomChoicePercentage = max(self.randomChoiceMinRate,
                                           (self.randomChoiceDecayRate * self.randomChoicePercentage))
         # self.randomChoicePercentage = minRate + (maxRate - minRate) * np.exp(-decayRate * iteration)
@@ -89,7 +89,11 @@ class Agent:
         print("info - averageReward: {0}".format(self.scores.averageReward()))
         print("info - randomDecay: {0}".format(self.randomChoiceDecayRate))
         print("info - sampleSize: {0}".format(self.sampleSize))
+        print("info - targetNetworkThreshold: {0}".format(self.targetNetworkThreshold))
+        # print("info - optimizaer {0}, loss {1}, dequeAmount: {2}".format(optimizer, loss, dequeAmount))
+        # TODO paramertize optimizer
         self.learner.log()
+        self.replayBuffer.log()
 
     def play(self):
         iteration = 0
@@ -113,13 +117,10 @@ class Agent:
 
                 if self.replayBuffer.isReady():
                     self.updateLearner()
-                    self.decayRandomChoicPercentage()
+                    self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(totalSteps):
                         self.learner.updateTargetModel()
-
-                if self.replayBuffer.isFull():
-                    self.replayBuffer.dequeueFromReplayBuffer()
 
                 if self.shouldLog(totalSteps):
                     print("At Iteration: {0}".format(iteration))
@@ -127,33 +128,29 @@ class Agent:
                     self.log()
 
                 totalReward += reward
-            # self.learner.updateTargetModel()
 
             self.scores.append(totalReward)
 
-            # print("info - randomFactor: {0} - LR: {1} - Rdecay {2}".format(randomChoicePercentage, learningRate, decayRate))
-            # print("info - numNodes {0}, numLayers {1}, batchSize: {2}".format(nodesPerLayer, numLayers, batchSize))
-            # print("info - optimizaer {0}, loss {1}, dequeAmount: {2}".format(optimizer, loss, dequeAmount))
-            # print("info - sampleSize {0}, gamma {1}".format(sampleSize, gamma))
-
         self.plot()
 
-        # Scores.reset()
-        # randomChoicePercentage = 0
+        self.finalScoring()
 
-        # for _ in range(100):
-        # totalReward = 0
-        # done = False
-        # step = np.array(env.reset())
-        # while not done:
-        # actionToTake = getNextAction(step, mainModel)
-        # step, reward, done, _ = env.step(actionToTake)
-        # totalReward += reward
+    def finalScoring(self):
+        self.scores.reset()
+        self.randomChoicePercentage = 0
 
-        # Scores.append(totalReward)
+        for _ in range(100):
+            totalReward = 0
+            done = False
+            step = np.array(env.reset())
+            while not done:
+                actionToTake = self.getNextAction(step, mainModel)
+                step, reward, done, _ = self.env.step(actionToTake)
+                totalReward += reward
 
-        # print("info - Average reward {}".format(Scores.averageReward()))
+            self.scores.append(totalReward)
 
+        print("info - Average reward {}".format(Scores.averageReward()))
     def plot(self):
         self.scores.plotA()
         self.scores.plotB()
