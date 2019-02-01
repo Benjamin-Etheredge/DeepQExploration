@@ -11,9 +11,9 @@ class DeepQ:
                  nodesPerLayer=128,  # TODO difference between 128 vs 256
                  numLayers=2,
                  batchSize=32,
-                 # gamma=0.9995,
-                 gamma=0.999,
-                 learningRate=0.001
+                 gamma=0.995,
+                 # gamma=0.999,
+                 learningRate=0.0005
                  # LRdecayRate=0.
                  ):
 
@@ -54,6 +54,8 @@ class DeepQ:
 
     def log(self):
         print("info - nodesPerLayer: {0}".format(self.nodesPerLayer))
+        print("info - numLayers: {0}".format(self.numLayers))
+        print("info - learning rate: {0}".format(self.learningRate))
         print("info - gamma: {0}".format(self.gamma))
         print("info - batchSize: {0}".format(self.batchSize))
 
@@ -62,10 +64,7 @@ class DeepQ:
         actionValues = self.model.predict(np.atleast_2d(state))[0]
         return np.argmax(actionValues)
 
-    # TODO test without target
-        logging.debug('DeepQ - statePrimeActionValeus')
-        # Get np array of all states prime
-        # statePrimes = np.array([sample[_][2] for _ in range(len(sample))])
+        # TODO test without target
         statePrimes = sample.nextStates
         # Get the action values for state primes NOTE TARGET MODEL
         allPrimeActionValues = self.targetModel.predict(statePrimes)
@@ -94,7 +93,6 @@ class DeepQ:
             idx += 1
 
         # TODO refactor
-        # for primeActionValue, action, reward, isDone in zip(allPrimeActionValues, sample.actions, sample.rewards, sample.isDones):
 
         self.model.fit(x=states, y=allActionValues, batch_size=self.batchSize, epochs=1, verbose=0)
 
@@ -104,7 +102,7 @@ class DoubleDeepQ(DeepQ):
     def qPrime(self, primeActionValues, actionValues):
         return primeActionValues[np.argmax(actionValues)]
 
-
+# NOTE Extends DoubleDeepQ and NOT vanilla DeepQ
 class DuelDeepQ(DoubleDeepQ):
 
     # TODO pull out to factory method
