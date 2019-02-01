@@ -13,9 +13,9 @@ class Agent:
                  experienceStartThreshold=50000,
                  rewardThreshold=220,  # TODO could be higher
                  sampleSize=32,
-                 targetNetworkThreshold=2000,  # threshold for updating target network
+                 targetNetworkThreshold=2500,  # threshold for updating target network
                  logThreshold=5000,
-                 randomChoiceDecayRate=0.99999,
+                 randomChoiceDecayRate=0.999992,
                  randomChoiceMinRate=0.1
                  ):
 
@@ -142,16 +142,18 @@ class Agent:
         for _ in range(100):
             totalReward = 0
             done = False
-            step = np.array(env.reset())
+            step = np.array(self.env.reset())
             while not done:
-                actionToTake = self.getNextAction(step, mainModel)
+                self.env.render()
+                actionToTake = self.getNextAction(step)
                 step, reward, done, _ = self.env.step(actionToTake)
+
                 totalReward += reward
 
             self.scores.append(totalReward)
 
         print("info - Average reward {}".format(Scores.averageReward()))
+
     def plot(self):
         self.scores.plotA()
         self.scores.plotB()
-
