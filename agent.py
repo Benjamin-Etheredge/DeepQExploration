@@ -10,13 +10,13 @@ from scores import *
 class Agent:
     def __init__(self, learner, replayBuffer, environmentName,
                  experienceMaxThreshold=100000,
-                 experienceStartThreshold=50000,
+                 experienceStartThreshold=100000,
                  rewardThreshold=220,  # TODO could be higher
                  sampleSize=32,
                  targetNetworkThreshold=2500,  # threshold for updating target network
                  logThreshold=5000,
-                 randomChoiceDecayRate=0.999992,
-                 randomChoiceMinRate=0.1
+                 randomChoiceDecayRate=0.999995,
+                 randomChoiceMinRate=0.05
                  ):
 
         self.env = gym.make(environmentName)
@@ -152,7 +152,7 @@ class Agent:
 
             self.scores.append(totalReward)
 
-        print("info - Average reward {}".format(Scores.averageReward()))
+        print("info - Average reward {}".format(self.scores.averageReward()))
 
     def plot(self):
         self.scores.plotA()
