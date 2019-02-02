@@ -9,7 +9,7 @@ class DeepQ:
                  nodesPerLayer=128,  # TODO difference between 128 vs 256
                  numLayers=2,
                  batchSize=32,
-                 gamma=0.991,
+                 gamma=0.99,
                  # gamma=0.999,
                  learningRate=0.0005
                  # LRdecayRate=0.
