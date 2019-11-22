@@ -1,12 +1,14 @@
 import logging
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
+#config = tf.ConfigProto()
+#config.gpu_options.allow_growth = True
+#session = tf.Session(config=config)
 
 class DeepQ:
     def __init__(self, inputDiminsion, outputDiminsion,
@@ -63,14 +65,15 @@ class DeepQ:
 
     def getNextAction(self, state):
         logging.debug('DeepQ - getNextAction')
-        actionValues = self.model.predict(np.atleast_2d(state))[0]
+        actionValues = self.model.predict_on_batch(np.atleast_2d(state))[0]
+        #actionValues = self.model.predict(np.atleast_2d(state))[0]
         return np.argmax(actionValues)
 
         # TODO test without target
-        statePrimes = sample.nextStates
+        #statePrimes = sample.nextStates
         # Get the action values for state primes NOTE TARGET MODEL
-        target_prime_action_values = self.targetModel.predict(statePrimes)
-        return target_prime_action_values
+        #target_prime_action_values = self.targetModel.predict(statePrimes)
+        #return target_prime_action_values
 
     # TODO maybe make method passed in?
     def qPrime(self, prime_action_values, action_values):
@@ -85,9 +88,9 @@ class DeepQ:
 
     def update(self, sample):
         # TODO refactor
-        current_all_action_values = self.model.predict(sample.states)
-        current_all_prime_action_values = self.model.predict(sample.nextStates)
-        target_all_prime_action_values = self.targetModel.predict(sample.nextStates)
+        current_all_action_values = self.model.predict_on_batch(sample.states)
+        current_all_prime_action_values = self.model.predict_on_batch(sample.nextStates)
+        target_all_prime_action_values = self.targetModel.predict_on_batch(sample.nextStates)
 
         idx = 0
         for primeActionValue, action, reward, isDone in zip(target_all_prime_action_values, sample.actions, sample.rewards, sample.isDones):
@@ -103,7 +106,8 @@ class DeepQ:
 
         # TODO refactor
 
-        self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
+        #self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
+        self.model.train_on_batch(x=sample.states, y=current_all_action_values)
 
 
 class DoubleDeepQ(DeepQ):
@@ -155,8 +159,8 @@ class DuelDeepQ(DoubleDeepQ):
         # model.compile(optimizer=keras.optimizers.Adam(lr=self.learningRate, decay=self.LRdecayRate),
         model.compile(optimizer=keras.optimizers.Adam(lr=learningRate),
                       # model.compile(optimizer=keras.optimizers.RMSprop(lr=cls.learningRate),
-                      loss='mse',
-                      metrics=['accuracy'])
+                      loss='mse')
+                      #metrics=['accuracy'])
         keras.utils.plot_model(model, to_file='model.png')
         return model
 

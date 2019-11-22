@@ -25,6 +25,7 @@ class Agent:
         numberOfFeatures = self.env.observation_space.shape[0]
         numberOfActions = self.env.action_space.n
 
+        # TODO do not construct here. Dependency inject
         self.learner = learner(numberOfFeatures, numberOfActions)
 
         self.replayBuffer = replayBuffer(experienceMaxThreshold, experienceStartThreshold)
