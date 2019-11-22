@@ -6,6 +6,8 @@ from buffer import *
 
 from scores import *
 
+from timeit import default_timer as timer
+
 
 class Agent:
     def __init__(self, learner, replayBuffer, environmentName,
@@ -98,6 +100,8 @@ class Agent:
     def play(self):
         iteration = 0
         totalSteps = 0
+        start_time = timer()
+        iteration_time = start_time
         while not self.isDoneLearning():
             # print("Start Iteration: {}".format(iteration))
             iteration += 1
@@ -123,8 +127,13 @@ class Agent:
                         self.learner.updateTargetModel()
 
                 if self.shouldLog(totalSteps):
-                    print("At Iteration: {0}".format(iteration))
-                    print("At step: {0}".format(totalSteps))
+                    current_time = timer()
+                    print(f"At Iteration: {iteration}")
+                    print(f"At step: {totalSteps}")
+                    print(f"Iteration took: {round(current_time - iteration_time, 2)}s")
+                    print(f"Iteration took: {current_time - iteration_time}s")
+                    print(f"Total Time: {round(current_time - start_time, 2)}s")
+                    iteration_time = current_time
                     self.log()
 
                 totalReward += reward
