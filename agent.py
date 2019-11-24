@@ -3,6 +3,7 @@ import random
 import logging
 import matplotlib.pyplot as plt
 from buffer import *
+from copy import deepcopy
 
 from scores import *
 
