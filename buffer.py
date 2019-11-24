@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 import random
+import collections
 
 
 #TODO implement priority replay buffer
@@ -47,7 +48,23 @@ class Experience:
 
 class ReplayBuffer:
 
-    def __init__(self, maxLength, startLength=None, buffer=None):
+    def __init__(self,
+                 max_length: int = 100000,
+                 start_length: int =None,
+                 buffer: list = None):
+        """
+        Constructor for Default replay buffer
+        :param max_length:
+        :param start_length:
+        :param buffer:
+        """
+
+        self.max_length = max_length
+
+        if start_length is None:
+            start_length = max_length
+        self.start_length = start_length
+
         if buffer is None:
             self.buffer = []
         else:
