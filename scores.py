@@ -4,44 +4,54 @@ import matplotlib.pyplot as plt
 
 
 class Scores:
-    numberOfRewardsToAverageOver = 150
 
-    def __init__(self):
+    def __init__(self, score_count: int = 200):
+        self.numberOfRewardsToAverageOver = score_count
         self.lastAvarage = 0
-        self.lastScores = np.full(self.numberOfRewardsToAverageOver, -200)
+        self.lastScores = np.full(score_count, 0)
         self.indexOfNextScore = 0
         self.allScores = []
         self.allAverages = []
 
-    def append(cls, reward):
-        cls.allScores.append(reward)
-        cls.lastScores[cls.indexOfNextScore] = reward
-        cls.indexOfNextScore += 1
-        cls.indexOfNextScore %= cls.numberOfRewardsToAverageOver
+    def append(self, reward):
+        self.allScores.append(reward)
+        self.lastScores[self.indexOfNextScore] = reward
+        self.indexOfNextScore += 1
+        self.indexOfNextScore %= self.numberOfRewardsToAverageOver
 
-    def reset(cls):
-        cls.lastAvarage = 0
-        cls.lastScores = np.zeros(cls.numberOfRewardsToAverageOver)
-        cls.indexOfNextScore = 0
-        cls.allScores = []
-        cls.allAverages = []
+    def reset(self):
+        self.lastAvarage = 0
+        self.lastScores = np.zeros(self.numberOfRewardsToAverageOver)
+        self.indexOfNextScore = 0
+        self.allScores = []
+        self.allAverages = []
 
-    def averageReward(cls):
-        averageReward = np.mean(cls.lastScores)
-        cls.allAverages.append(averageReward)
+    def averageReward(self):
+        averageReward = np.mean(self.lastScores)
+        self.allAverages.append(averageReward)
         return averageReward
 
     def numberOfGoodLandings(cls):
         return (cls.lastScores > 0).sum()
 
-    def plotB(cls):
+    def plotB(cls, game_name=None, learner_name=None):
         plt.plot(cls.allAverages)
-        plt.ylabel('Average Total Reward per 100 episode')
+        y_label = ""
+        if game_name is not None:
+            y_label += game_name + "\n"
+        if learner_name is not None:
+            y_label += learner_name + "\n"
+        plt.ylabel(y_label + 'Average Total Reward per 200 episode')
         plt.xlabel('Episode')
         plt.show()
 
-    def plotA(cls):
-        plt.plot(cls.allScores)
-        plt.ylabel('Total Reward per episode')
+    def plotA(self, game_name=None, learner_name=None):
+        plt.plot(self.allScores)
+        y_label = ""
+        if game_name is not None:
+            y_label += game_name + "\n"
+        if learner_name is not None:
+            y_label += learner_name + "\n"
+        plt.ylabel(y_label + 'Total Reward per episode')
         plt.xlabel('Episode')
         plt.show()
