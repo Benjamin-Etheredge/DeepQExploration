@@ -10,35 +10,39 @@ from timeit import default_timer as timer
 
 
 class Agent:
-    def __init__(self, learner, replayBuffer, environmentName,
-                 experienceMaxThreshold=100000,
-                 experienceStartThreshold=100000,
-                 rewardThreshold=220,  # TODO could be higher
-                 sampleSize=32,
-                 targetNetworkThreshold=2500,  # threshold for updating target network
-                 logThreshold=5000,
-                 randomChoiceDecayRate=0.999995,
-                 randomChoiceMinRate=0.05
-                 ):
-
-        self.env = gym.make(environmentName)
-        numberOfFeatures = self.env.observation_space.shape[0]
-        numberOfActions = self.env.action_space.n
+    def __init__(self, learner: DeepQ,
+                 replayBuffer: ReplayBuffer,
+                 environment: gym.Env,
+                 scorer: Scores = Scores(100),
+                 reward_threshold: int = None,
+                 max_episode_steps=None,
+                 sample_size=128,
+                 random_choice_decay_min: float = 0.01,
+                 verbose=0):
 
         # TODO do not construct here. Dependency inject
-        self.learner = learner(numberOfFeatures, numberOfActions)
-
-        self.replayBuffer = replayBuffer(experienceMaxThreshold, experienceStartThreshold)
-        self.randomChoicePercentage = 1.
-        self.scores = Scores()
+        self.learner = learner
+        self.replay_buffer = replayBuffer
+        self.env = environment
+        # This is needed to keep multiple game windows from opening up when scoring
+        self.scoring_env = deepcopy(self.env)
+        self.random_action_rate = 1.1
+        self.scores = scorer
+        self.verbose = verbose
 
         # Easily Adjusted hyperparameters
-        self.rewardThreshold = rewardThreshold
-        self.sampleSize = sampleSize
-        self.targetNetworkThreshold = targetNetworkThreshold
-        self.logThreshold = logThreshold
-        self.randomChoiceDecayRate = randomChoiceDecayRate
-        self.randomChoiceMinRate = randomChoiceMinRate
+        self.reward_stopping_threshold = reward_threshold
+        self.max_episode_steps = max_episode_steps
+        self.target_network_updating_interval = self.max_episode_steps*1
+        self.sample_size = sample_size
+        #self.target_network_updating_interval = target_network_updating_interval
+        self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
+        #self.randomChoiceDecayRate = randomChoiceDecayRate
+        if random_choice_decay_min == 0:
+            random_choice_decay_min = 0.0000000000000001
+        self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episode_steps * 500)))
+        #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
+        self.randomChoiceMinRate = random_choice_decay_min
 
     def isDoneLearning(self):
         logging.debug('isDoneLearning')
