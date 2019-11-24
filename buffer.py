@@ -66,14 +66,8 @@ class ReplayBuffer:
         self.start_length = start_length
 
         if buffer is None:
-            self.buffer = []
-        else:
-            self.buffer = buffer
-        self.maxLength = maxLength
-        if startLength is None:
-            self.startLength = maxLength
-        else:
-            self.startLength = startLength
+            buffer = collections.deque([], self.max_length)
+        self.buffer = buffer
 
     @property
     def numberOfExperiences(self):
@@ -91,17 +85,18 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-    def dequeueFromReplayBuffer(self):
-        logging.debug('dequeueFromReplayBuffer')
-        self.buffer = self.buffer[1:]
+    def dequeue(self):
+        logging.debug('dequeue')
+        #self.buffer = self.buffer[1:]
+        pass
 
     def isFull(self):
         logging.debug('isReplayBufferFull')
-        return self.numberOfExperiences > self.maxLength
+        return self.numberOfExperiences > self.max_length
 
     def isReady(self):
         logging.debug('isReplayBuffer')
-        return self.numberOfExperiences > self.startLength
+        return self.numberOfExperiences >= self.start_length
 
     @property
     def states(self):
@@ -125,10 +120,10 @@ class ReplayBuffer:
 
     def append(self, experience):
         if self.isFull():
-            self.dequeueFromReplayBuffer()
+            self.dequeue()
         self.buffer.append(experience)
 
-    def sample(self, numberOfSamples):
+    def sample(self, sample_size=None):
         # return self.reservoirSampling(numberOfSamples)
         return self.randomSample(numberOfSamples)
 
