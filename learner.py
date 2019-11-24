@@ -1,14 +1,16 @@
 import logging
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="-1"
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-#config = tf.ConfigProto()
-#config.gpu_options.allow_growth = True
-#session = tf.Session(config=config)
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
 
 class DeepQ:
     def __init__(self, inputDiminsion, outputDiminsion,
