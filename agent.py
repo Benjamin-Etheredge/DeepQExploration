@@ -134,7 +134,7 @@ class Agent:
             step = self.env.reset()
             is_done = False
             total_reward = 0
-            self.learner.update_target_model()
+            #self.learner.update_target_model()
             while not is_done:
                 if total_steps > step_limit:
                     return total_steps
@@ -153,8 +153,8 @@ class Agent:
                     self.updateLearner()
                     self.decayRandomChoicePercentage()
 
-                    #if self.shouldUpdateLearnerTargetModel(total_steps):
-                        #self.learner.update_target_model()
+                    if self.shouldUpdateLearnerTargetModel(total_steps):
+                        self.learner.update_target_model()
 
                 if verbose > 0 and self.shouldLog(total_steps):
                     current_time = timer()
