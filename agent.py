@@ -186,7 +186,7 @@ class Agent:
 
 
     def score_model(self, games=150, verbose=0):
-        scores = Scores(score_count=150)
+        scores = Scores(score_count=games)
 
         for _ in range(games):
             total_reward = 0
