@@ -8,7 +8,7 @@ class Scores:
     def __init__(self, score_count: int = 200):
         self.numberOfRewardsToAverageOver = score_count
         self.last_average = 0
-        self.last_scores = np.full(score_count, 0)
+        self.last_scores = np.full(score_count, -200)
         self.index_of_next_score = 0
         self.all_scores = []
         self.all_averages = []
