@@ -7,35 +7,35 @@ class Scores:
 
     def __init__(self, score_count: int = 200):
         self.numberOfRewardsToAverageOver = score_count
-        self.lastAvarage = 0
-        self.lastScores = np.full(score_count, 0)
-        self.indexOfNextScore = 0
-        self.allScores = []
-        self.allAverages = []
+        self.last_average = 0
+        self.last_scores = np.full(score_count, 0)
+        self.index_of_next_score = 0
+        self.all_scores = []
+        self.all_averages = []
 
     def append(self, reward):
-        self.allScores.append(reward)
-        self.lastScores[self.indexOfNextScore] = reward
-        self.indexOfNextScore += 1
-        self.indexOfNextScore %= self.numberOfRewardsToAverageOver
+        self.all_scores.append(reward)
+        self.last_scores[self.index_of_next_score] = reward
+        self.index_of_next_score += 1
+        self.index_of_next_score %= self.numberOfRewardsToAverageOver
 
     def reset(self):
-        self.lastAvarage = 0
-        self.lastScores = np.zeros(self.numberOfRewardsToAverageOver)
-        self.indexOfNextScore = 0
-        self.allScores = []
-        self.allAverages = []
+        self.last_average = 0
+        self.last_scores = np.zeros(self.numberOfRewardsToAverageOver)
+        self.index_of_next_score = 0
+        self.all_scores = []
+        self.all_averages = []
 
-    def averageReward(self):
-        averageReward = np.mean(self.lastScores)
-        self.allAverages.append(averageReward)
-        return averageReward
+    def average_reward(self):
+        average_reward = np.mean(self.last_scores)
+        self.all_averages.append(average_reward)
+        return average_reward
 
     def numberOfGoodLandings(cls):
-        return (cls.lastScores > 0).sum()
+        return (cls.last_scores > 0).sum()
 
     def plotB(cls, game_name=None, learner_name=None):
-        plt.plot(cls.allAverages)
+        plt.plot(cls.all_averages)
         y_label = ""
         if game_name is not None:
             y_label += game_name + "\n"
@@ -46,7 +46,7 @@ class Scores:
         plt.show()
 
     def plotA(self, game_name=None, learner_name=None):
-        plt.plot(self.allScores)
+        plt.plot(self.all_scores)
         y_label = ""
         if game_name is not None:
             y_label += game_name + "\n"

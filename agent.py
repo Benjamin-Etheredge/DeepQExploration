@@ -48,7 +48,7 @@ class Agent:
 
     def is_done_learning(self):
         logging.debug('isDoneLearning')
-        return self.scores.averageReward() >= self.reward_stopping_threshold
+        return self.scores.average_reward() >= self.reward_stopping_threshold
 
     def shouldSelectRandomAction(self):
         logging.debug('shouldSelectRandomAction')
@@ -97,7 +97,7 @@ class Agent:
         print("info - numberOfExperiences: {0}".format(len(self.replay_buffer)))
         print("info - randomRate: {0}".format(self.random_action_rate))
         print(f"info - Reward Target: {self.reward_stopping_threshold}")
-        print("info - averageReward: {0}".format(self.scores.averageReward()))
+        print("info - averageReward: {0}".format(self.scores.average_reward()))
         print("info - randomDecay: {0}".format(self.randomChoiceDecayRate))
         print("info - sampleSize: {0}".format(self.sample_size))
         print("info - targetNetworkThreshold: {0}".format(self.target_network_updating_interval))
@@ -202,7 +202,7 @@ class Agent:
 
             scores.append(total_reward)
 
-        return scores.averageReward()
+        return scores.average_reward()
 
     def plot(self, game_name=None, learner_name=None):
         self.scores.plotA(game_name, learner_name)
