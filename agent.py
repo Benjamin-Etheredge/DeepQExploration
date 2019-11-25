@@ -4,11 +4,14 @@ import logging
 import matplotlib.pyplot as plt
 from buffer import *
 from copy import deepcopy
+from tqdm import tqdm
 
 from scores import *
 
 from timeit import default_timer as timer
 from learner import *
+import multiprocessing
+from multiprocessing import Process, Queue
 
 
 class Agent:
@@ -18,9 +21,10 @@ class Agent:
                  scorer: Scores = Scores(100),
                  reward_threshold: int = None,
                  max_episode_steps=None,
-                 sample_size=128,
+                 sample_size=16,
                  random_choice_decay_min: float = 0.01,
                  verbose=0):
+
 
         # TODO do not construct here. Dependency inject
         self.learner = learner
@@ -31,6 +35,7 @@ class Agent:
         self.random_action_rate = 1.1
         self.scores = scorer
         self.verbose = verbose
+        self.steps_per_game_scorer = Scores(100)
 
         # Easily Adjusted hyperparameters
         self.reward_stopping_threshold = reward_threshold
@@ -46,9 +51,32 @@ class Agent:
         #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
 
+        logging.info(f"Game: {self.env.unwrapped.spec.id}")
+        logging.info(f"Reward Target: {self.reward_stopping_threshold}")
+        logging.info(f"randomDecay: {self.randomChoiceDecayRate}")
+        logging.info(f"sampleSize: {self.sample_size}")
+        logging.info(f"targetNetworkThreshold: {self.target_network_updating_interval}")
+
+        status_bars_disabled = verbose == 0
+        meter_bar_format_elapsed = "{desc}: {n_fmt} [Elapsed: {elapsed}, {rate_fmt}]"
+        meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
+        running_average_fmt = "{desc}: {total_fmt} [Goal: " + str(reward_threshold) + "]"
+        self.step_meter = tqdm(total=1, initial=0, desc="Steps", unit="steps", disable=status_bars_disabled, bar_format=meter_bar_format_elapsed)
+        self.game_meter = tqdm(total=1, initial=0, desc="Games", unit="games", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.model_update_counter = tqdm(total=1, initial=0, desc="Model Updates", unit="updates", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.target_update_meter = tqdm(total=1, initial=0, desc="Target Updates", unit="updates", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.random_monitor = tqdm(total=self.random_action_rate, desc="Current Random Action Rate", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.game_step_monitor = tqdm(total=0, desc="Average Steps per game over past 100 games", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.on_policy_monitor = tqdm(total=0, desc="On-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
+        self.off_policy_monitor = tqdm(total=0, desc="Off-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
+        logging.info(f"max_episode_steps: {self.max_episode_steps}")
+
     def is_done_learning(self):
         logging.debug('isDoneLearning')
-        return self.scores.average_reward() >= self.reward_stopping_threshold
+        average_reward = self.scores.average_reward()
+        self.off_policy_monitor.total = average_reward
+        self.off_policy_monitor.update(0)
+        return average_reward >= self.reward_stopping_threshold
 
     def shouldSelectRandomAction(self):
         logging.debug('shouldSelectRandomAction')
@@ -80,6 +108,8 @@ class Agent:
         self.random_action_rate = max(self.randomChoiceMinRate,
                                       (self.randomChoiceDecayRate * self.random_action_rate))
         # self.randomChoicePercentage = minRate + (maxRate - minRate) * np.exp(-decayRate * iteration)
+        self.random_monitor.total = self.random_action_rate
+        self.random_monitor.update(0)
 
     def updateLearner(self):
         logging.debug('updateLearner')
@@ -87,21 +117,16 @@ class Agent:
         # npSample = convertSampleToNumpyForm(sample)
         # self.learner.update(npSample)
         self.learner.update(sample)
+        self.model_update_counter.update(1)
 
     # TODO implement actual logger
-    def shouldLog(self, iteration):
+    def should_log(self, iteration):
         return iteration % self.log_triggering_threshold == 0
 
     def log(self):
-        print(f"info - Game: {self.env.unwrapped.spec.id}")
-        print("info - numberOfExperiences: {0}".format(len(self.replay_buffer)))
-        print("info - randomRate: {0}".format(self.random_action_rate))
-        print(f"info - Reward Target: {self.reward_stopping_threshold}")
-        print("info - averageReward: {0}".format(self.scores.average_reward()))
-        print("info - randomDecay: {0}".format(self.randomChoiceDecayRate))
-        print("info - sampleSize: {0}".format(self.sample_size))
-        print("info - targetNetworkThreshold: {0}".format(self.target_network_updating_interval))
-        print(f"info - max_episode_steps: {self.max_episode_steps}")
+        logging.info(f"numberOfExperiences: {len(self.replay_buffer)}")
+        logging.info(f"randomRate: {self.random_action_rate}")
+        logging.info(f"averageReward: {self.scores.average_reward()}")
         # print("info - optimizaer {0}, loss {1}, dequeAmount: {2}".format(optimizer, loss, dequeAmount))
         # TODO paramertize optimizer
         self.learner.log()
@@ -116,6 +141,7 @@ class Agent:
             _, _, is_done, _ = self.scoring_env.step(action_choice)
 
     def play(self, step_limit=float("inf"), verbose=0):
+
         iteration = 0
         total_steps = 0
         start_time = timer()
@@ -123,17 +149,21 @@ class Agent:
         while not self.is_done_learning():
             # print("Start Iteration: {}".format(iteration))
             iteration += 1
+            self.game_meter.update(1)
 
-            # Start a new game
             if iteration % 100 == 0:
                 score = self.score_model(100)
-                print(f"\nitermediate score: {score}\n")
+                self.on_policy_monitor.total = score
+                self.on_policy_monitor.update(0)
+                logging.info(f"\nitermediate score: {score}\n")
                 if score >= self.reward_stopping_threshold:
                     return total_steps
 
+            # Start a new game
             step = self.env.reset()
             is_done = False
             total_reward = 0
+            game_steps = 0
             #self.learner.update_target_model()
             while not is_done:
                 if total_steps > step_limit:
@@ -143,6 +173,8 @@ class Agent:
                     self.env.render()
                 action_choice = self.getNextAction(step)
                 total_steps += 1
+                game_steps += 1
+                self.step_meter.update(1)
                 next_step, reward, is_done, _ = self.env.step(action_choice)
                 # TODO add prioirity
                 experience = Experience(step, action_choice, next_step, reward, is_done)
@@ -154,15 +186,16 @@ class Agent:
                     self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(total_steps):
+                        self.target_update_meter.update(1)
                         self.learner.update_target_model()
 
-                if verbose > 0 and self.shouldLog(total_steps):
+                if verbose > 0 and self.should_log(total_steps):
                     current_time = timer()
-                    print(f"\nAt Iteration: {iteration}")
-                    print(f"Step Limit: {step_limit}")
-                    print(f"At step: {total_steps}")
-                    print(f"Iteration took: {round(current_time - iteration_time, 2)}s")
-                    print(f"Total Time: {round(current_time - start_time, 2)}s")
+                    logging.info(f"\nAt Iteration: {iteration}")
+                    logging.info(f"Step Limit: {step_limit}")
+                    logging.info(f"At step: {total_steps}")
+                    logging.info(f"Iteration took: {round(current_time - iteration_time, 2)}s")
+                    logging.info(f"Total Time: {round(current_time - start_time, 2)}s")
                     iteration_time = current_time
                     self.log()
                     if verbose > 1:
@@ -171,6 +204,9 @@ class Agent:
                 total_reward += reward
 
             self.scores.append(total_reward)
+            self.steps_per_game_scorer.append(game_steps)
+            self.game_step_monitor.total = self.steps_per_game_scorer.average_reward()
+            self.game_step_monitor.update(0)
 
         #self.plot()
 
@@ -185,26 +221,66 @@ class Agent:
     def save_model(self, file_name):
         pass
 
+    def play_game(self):
+        total_reward = 0
+        done = False
+        env = deepcopy(self.scoring_env)
+        step = env.reset()
+        while not done:
+            action_choice = self.learner.getNextAction(step)
+            step, reward, done, _ = env.step(action_choice)
+            total_reward += reward
+        return total_reward
+
+    def play_game_worker(self):
+        pass
+
 
     def score_model(self, games=150, verbose=0):
+        """
         scores = Scores(score_count=games)
 
         for _ in range(games):
-            total_reward = 0
-            done = False
-            step = self.scoring_env.reset()
-            while not done:
-                if verbose > 0:
-                    self.scoring_env.render()
-                action_choice = self.learner.getNextAction(step)
-                step, reward, done, _ = self.scoring_env.step(action_choice)
-
-                total_reward += reward
-
-            scores.append(total_reward)
-
+            score = self.play_game()
+            scores.append(score)
         return scores.average_reward()
+        #return np.mean(pool.map(self._map_play_game, range(games)))
+        """
+        #from functools import partial
+        #partial_func = partial(play_game_parallel, self.learner)
+        pool = multiprocessing.Pool(4)
+        params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
+        temp = pool.map(play_game_parallel, params)
+        return_array = []
+        procs = []
+        for _ in range(games):
+            #reward = play_game_parallel(self.learner, deepcopy(self.scoring_env))
+            proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
+            #proc = multiprocessing.Process(target=do_nothing)
+            procs.append(proc)
+            proc.start()
+            proc.join()
+
+            #total_reward = self.play_game()
+            #scores.append(total_reward)
+        #for proc in procs:
+            #proc.join()
+        return np.mean(return_array)
+
 
     def plot(self, game_name=None, learner_name=None):
         self.scores.plotA(game_name, learner_name)
         self.scores.plotB(game_name, learner_name)
+
+def play_game_parallel(model, env, shared):
+    total_reward = 0
+    done = False
+    step = env.reset()
+    while not done:
+        action_choice = model.getNextAction(step)
+        step, reward, done, _ = env.step(action_choice)
+        total_reward += reward
+    shared.append(total_reward)
+def do_nothing():
+    pass
+

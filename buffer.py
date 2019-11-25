@@ -133,8 +133,8 @@ class ReplayBuffer:
         return ReplayBuffer(numberOfSamples, buffer=random.sample(self.buffer, numberOfSamples))
 
     def log(self):
-        print("info - start buffer size: {0}".format(self.start_length))
-        print("info - max buffer size: {0}".format(self.max_length))
+        logging.info(f"start buffer size: {self.start_length}")
+        logging.info(f"max buffer size: {self.max_length}")
 
     # Reservoir Sampling
     #TODO why did this have such POOR performance compared to random.sample????

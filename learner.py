@@ -1,8 +1,7 @@
 import logging
 import os
-
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -39,6 +38,13 @@ class DeepQ:
                                              self.nodes_per_layer, self.number_of_layers, self.learning_rate)
         self.update_target_model()
 
+        logging.info(f"name: {self.get_name()}")
+        logging.info(f"nodesPerLayer: {self.nodes_per_layer}")
+        logging.info(f"numLayers: {self.number_of_layers}")
+        logging.info(f"learning rate: {self.learning_rate}")
+        logging.info(f"gamma: {self.gamma}")
+        logging.info(f"batchSize: {self.batch_size}")
+
     @staticmethod
     def get_name():
         return "DeepQ"
@@ -51,29 +57,18 @@ class DeepQ:
     @staticmethod
     def build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
         logging.debug('DeepQ - buildModel')
-        # inputs = keras.Input(shape=(env.observation_space.shape[0],))
         inputs = keras.Input(shape=(input_dimension,))
         hiddenLayer = inputs
         for _ in range(hidden_layer_count):
             hiddenLayer = keras.layers.Dense(nodes_per_layer, activation='relu')(hiddenLayer)
-        # predictions = keras.layers.Dense(env.action_space.n)(hiddenLayer)
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hiddenLayer)
         model = keras.Model(inputs=inputs, outputs=predictions)
-        # model.compile(optimizer=keras.optimizers.Adam(lr=self.learningRate, decay=self.LRdecayRate),
-        # model.compile(optimizer=keras.optimizers.RMSprop(lr=cls.learningRate),
-        #model.compile(optimizer=keras.optimizers.RMSprop(lr=learning_rate), loss=keras.losses.Huber())
         model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
-        # metrics = ['accuracy'])
         keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
     def log(self):
-        print(f"info - name: {self.get_name()}")
-        print("info - nodesPerLayer: {0}".format(self.nodes_per_layer))
-        print("info - numLayers: {0}".format(self.number_of_layers))
-        print("info - learning rate: {0}".format(self.learning_rate))
-        print("info - gamma: {0}".format(self.gamma))
-        print("info - batchSize: {0}".format(self.batch_size))
+        pass
 
     def getNextAction(self, state):
         logging.debug('DeepQ - getNextAction')

@@ -1,10 +1,16 @@
 #!/usr/bin/python3
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 # Custom Packages
 from agent import *
 from buffer import *
 from learner import *
 import logging
+from tqdm import tqdm
 
 # create logger with 'spam_application'
 
@@ -41,7 +47,12 @@ if __name__ == "__main__":
     games = [item for name in environments for item in games if item[0] == name]
     temp = env.reward_range
     data = []
+    #for name, max_episode_steps, reward_threshold in tqdm(games):
     for name, max_episode_steps, reward_threshold in games:
+
+        #bar = tqdm(range(3), bar_format="{postfix[0]} {postfix[1][value]:>8.2g}", postfix=["Learner", dict(value=1]))] desc="Learners")
+        #learner_meter = tqdm(range(3), desc="Learners")
+        #for idx in learner_meter:
         for idx in range(3):
             learner_idx = idx % 3
             if learner_idx == 0:
@@ -50,7 +61,8 @@ if __name__ == "__main__":
                 learner = DoubleDeepQ
             elif learner_idx == 2:
                 learner = DuelDeepQ
-            print(f"\nPlaying {name} with {learner.get_name()}\n")
+            #bar.set_postfix(learner.get_name())
+            #print(f"\nPlaying {name} with {learner.get_name()}\n")
 
             #if name != "LunarLander-v2":
                 #continue
@@ -61,7 +73,7 @@ if __name__ == "__main__":
             agent = Agent(
                 learner=learner(input_dimension=feature_count,
                                   output_dimension=action_count,
-                                  nodesPerLayer=64,
+                                  nodesPerLayer=128,
                                   numLayers=2,
                                   gamma=gamma),
                 scorer=Scores(100),
@@ -70,13 +82,15 @@ if __name__ == "__main__":
                 reward_threshold=reward_threshold,
                 random_choice_decay_min=0.01,
                 max_episode_steps=max_episode_steps,
-                verbose=0)
+                verbose=1)
             iteration_count = agent.play(4000 * max_episode_steps, verbose=1)
-            score = agent.score_model(150, verbose=0)
-            print(f"\n------------ FINAL Average reward: {score} -----------")
+            score = agent.score_model(100, verbose=0)
+            #print(f"\n------------ FINAL Average reward: {score} -----------")
 
             agent.plot(name, learner.get_name())
             data.append((learner.get_name(), name, iteration_count, score))
+            #learner_meter.write(f"{learner.get_name()} Done. Final Average Score: {score}")
+            print(f"{learner.get_name()} Done. Final Average Score: {score}")
 
     print(data)
 
