@@ -23,12 +23,11 @@ if __name__ == "__main__":
 
     # Envrionments and reward thesholds
     environments = [
-        "CartPole-v1",
         "CartPole-v0",
+        "CartPole-v1",
         "MountainCar-v0",
         "Acrobot-v1",
         "LunarLander-v2",
-        #"Acrobot-v1",
         ]
     #env = gym.make("LunarLander-v2")
     #env = gym.make("MountainCar-v0")
@@ -62,7 +61,7 @@ if __name__ == "__main__":
             agent = Agent(
                 learner=learner(input_dimension=feature_count,
                                   output_dimension=action_count,
-                                  nodesPerLayer=128,
+                                  nodesPerLayer=64,
                                   numLayers=2,
                                   gamma=gamma),
                 scorer=Scores(100),
