@@ -100,7 +100,7 @@ class DeepQ:
 
     def update(self, sample):
         # TODO refactor
-        current_all_action_values = self.model.predict_on_batch(sample.states)
+        current_all_action_values = np.array(self.model.predict_on_batch(sample.states))
         current_all_prime_action_values = self.model.predict_on_batch(sample.nextStates)
         target_all_prime_action_values = self.target_model.predict_on_batch(sample.nextStates)
 
