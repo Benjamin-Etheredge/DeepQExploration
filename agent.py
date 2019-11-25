@@ -175,6 +175,7 @@ class Agent:
         #self.plot()
 
         #self.score_model()
+        assert total_steps > 0
         return total_steps
 
     def load_model(self, file_name):
