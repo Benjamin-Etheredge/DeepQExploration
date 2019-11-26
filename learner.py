@@ -95,6 +95,7 @@ class DeepQ:
 
     def update(self, sample):
         # TODO refactor
+        #TODO combine model predections
         current_all_action_values = np.array(self.model.predict_on_batch(sample.states))
         current_all_prime_action_values = self.model.predict_on_batch(sample.nextStates)
         target_all_prime_action_values = self.target_model.predict_on_batch(sample.nextStates)
@@ -114,7 +115,8 @@ class DeepQ:
         # TODO refactor
 
         # self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
-        self.model.train_on_batch(x=sample.states, y=current_all_action_values, reset_metrics=False)
+        losses = self.model.train_on_batch(x=sample.states, y=current_all_action_values, reset_metrics=False)
+        return losses
 
 
 class DoubleDeepQ(DeepQ):
