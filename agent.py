@@ -161,12 +161,16 @@ class Agent:
             self.game_meter.update(1)
 
             if iteration % 100 == 0:
-                score = self.score_model(100)
-                self.on_policy_monitor.total = score
+                mini_score = self.score_model(5)
+                self.on_policy_monitor.total = mini_score
                 self.on_policy_monitor.update(0)
-                logging.info(f"\nitermediate score: {score}\n")
-                if score >= self.reward_stopping_threshold:
-                    return total_steps
+                logging.info(f"\nitermediate score: {mini_score}\n")
+                if mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
+                    actual_score = self.score_model(100)
+                    self.on_policy_monitor.total = actual_score
+                    self.on_policy_monitor.update(0)
+                    if actual_score >= self.reward_stopping_threshold:
+                        return total_steps
 
             # Start a new game
             step = self.env.reset()
@@ -175,7 +179,7 @@ class Agent:
             game_steps = 0
             #self.learner.update_target_model()
             while not is_done:
-                if total_steps > step_limit:
+                if total_steps >= step_limit:
                     return total_steps
 
                 if verbose > 2:
@@ -233,11 +237,10 @@ class Agent:
     def play_game(self):
         total_reward = 0
         done = False
-        env = deepcopy(self.scoring_env)
-        step = env.reset()
+        step = self.scoring_env.reset()
         while not done:
             action_choice = self.learner.getNextAction(step)
-            step, reward, done, _ = env.step(action_choice)
+            step, reward, done, _ = self.scoring_env.step(action_choice)
             total_reward += reward
         return total_reward
 
@@ -260,24 +263,25 @@ class Agent:
         """
         #from functools import partial
         #partial_func = partial(play_game_parallel, self.learner)
-        pool = multiprocessing.Pool(4)
-        params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
-        temp = pool.map(play_game_parallel, params)
-        return_array = []
-        procs = []
-        for _ in range(games):
+        #pool = multiprocessing.Pool(4)
+        #params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
+        #temp = pool.map(play_game_parallel, params)
+        #return_array = []
+        #procs = []
+        #for _ in range(games):
             #reward = play_game_parallel(self.learner, deepcopy(self.scoring_env))
-            proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
+            #proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
             #proc = multiprocessing.Process(target=do_nothing)
-            procs.append(proc)
-            proc.start()
-            proc.join()
+            #procs.append(proc)
+            #proc.start()
+            #proc.join()
 
             #total_reward = self.play_game()
             #scores.append(total_reward)
         #for proc in procs:
             #proc.join()
-        return np.mean(return_array)
+        scores = [self.play_game() for _ in range(games)]
+        return np.mean(scores)
 
 
     def plot(self, game_name=None, learner_name=None):
