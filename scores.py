@@ -18,6 +18,8 @@ class Scores:
         self.last_scores[self.index_of_next_score] = reward
         self.index_of_next_score += 1
         self.index_of_next_score %= self.numberOfRewardsToAverageOver
+        average_reward = np.mean(self.last_scores)
+        self.all_averages.append(average_reward)
 
     def reset(self):
         self.last_average = 0
@@ -27,9 +29,16 @@ class Scores:
         self.all_averages = []
 
     def average_reward(self):
-        average_reward = np.mean(self.last_scores)
-        self.all_averages.append(average_reward)
-        return average_reward
+        try:
+            return self.all_averages[-1]
+        except IndexError:
+            return -200
+
+    def get_variance(self):
+        if len(self.all_averages) > 20:
+            return np.var(self.all_averages[-20:])
+        else:
+            return float("inf")
 
     def numberOfGoodLandings(cls):
         return (cls.last_scores > 0).sum()

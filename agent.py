@@ -69,6 +69,7 @@ class Agent:
         self.game_step_monitor = tqdm(total=0, desc="Average Steps per game over past 100 games", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
         self.on_policy_monitor = tqdm(total=0, desc="On-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
         self.off_policy_monitor = tqdm(total=0, desc="Off-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
+        self.variance_monitor = tqdm(total=0, desc="Running Variance", unit="evals", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
         logging.info(f"max_episode_steps: {self.max_episode_steps}")
 
     def is_done_learning(self):
@@ -76,6 +77,10 @@ class Agent:
         average_reward = self.scores.average_reward()
         self.off_policy_monitor.total = average_reward
         self.off_policy_monitor.update(0)
+        variance_of_scores = self.scores.get_variance()
+        self.variance_monitor.total = variance_of_scores
+        self.variance_monitor.update(0)
+        #return self.scores.get_variance() <= abs(0.01*self.reward_stopping_threshold)
         return average_reward >= self.reward_stopping_threshold
 
     def shouldSelectRandomAction(self):
@@ -111,12 +116,13 @@ class Agent:
         self.random_monitor.total = self.random_action_rate
         self.random_monitor.update(0)
 
-    def updateLearner(self):
-        logging.debug('updateLearner')
-        sample = self.replay_buffer.sample(self.sample_size)
+    def update_learner(self):
+        logging.debug('updateLearner')  # TODO build warpper logs
+        sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
         # npSample = convertSampleToNumpyForm(sample)
         # self.learner.update(npSample)
-        self.learner.update(sample)
+        losses = self.learner.update(sample)
+        self.replay_buffer.update(sample_idxs, losses)
         self.model_update_counter.update(1)
 
     # TODO implement actual logger
@@ -186,7 +192,7 @@ class Agent:
                 step = next_step
 
                 if self.replay_buffer.isReady():
-                    self.updateLearner()
+                    self.update_learner()
                     self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(total_steps):
