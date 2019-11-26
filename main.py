@@ -83,7 +83,7 @@ if __name__ == "__main__":
                 replayBuffer=ReplayBuffer(max_length=1000*max_episode_steps, start_length=10*max_episode_steps),
                 environment=env,
                 reward_threshold=reward_threshold,
-                random_choice_decay_min=0.1,
+                random_choice_decay_min=0.01,
                 max_episode_steps=max_episode_steps,
                 verbose=0)
             step_count = agent.play(4000 * max_episode_steps, verbose=1)

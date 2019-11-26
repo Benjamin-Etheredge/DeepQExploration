@@ -158,16 +158,16 @@ class Agent:
             self.game_meter.update(1)
 
             if iteration % 100 == 0:
-                mini_score = self.score_model(5)
+                mini_score = self.score_model(3)
                 self.on_policy_monitor.total = mini_score
                 self.on_policy_monitor.update(0)
                 logging.info(f"\nitermediate score: {mini_score}\n")
-                if mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
-                    actual_score = self.score_model(100)
-                    self.on_policy_monitor.total = actual_score
-                    self.on_policy_monitor.update(0)
-                    if actual_score >= self.reward_stopping_threshold:
-                        return total_steps
+                #if mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
+                    #actual_score = self.score_model(100)
+                    #self.on_policy_monitor.total = actual_score
+                    #self.on_policy_monitor.update(0)
+                    #if actual_score >= self.reward_stopping_threshold:
+                        #return total_steps
 
             # Start a new game
             step = self.env.reset()
@@ -186,6 +186,7 @@ class Agent:
                 game_steps += 1
                 self.step_meter.update(1)
                 next_step, reward, is_done, _ = self.env.step(action_choice)
+                total_reward += reward
                 # TODO add prioirity
                 experience = Experience(step, action_choice, next_step, reward, is_done)
                 self.replay_buffer.append(experience)
@@ -211,7 +212,6 @@ class Agent:
                     if verbose > 1:
                         self.render_game()
 
-                total_reward += reward
 
             self.scores.append(total_reward)
             self.steps_per_game_scorer.append(game_steps)
