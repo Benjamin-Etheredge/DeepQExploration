@@ -73,7 +73,7 @@ if __name__ == "__main__":
             agent = Agent(
                 learner=learner(input_dimension=feature_count,
                                   output_dimension=action_count,
-                                  nodesPerLayer=64,
+                                  nodesPerLayer=128,
                                   numLayers=2,
                                   gamma=gamma),
                 scorer=Scores(100),
@@ -83,15 +83,14 @@ if __name__ == "__main__":
                 random_choice_decay_min=0.01,
                 max_episode_steps=max_episode_steps,
                 verbose=1)
-            step_count = agent.play(4000 * max_episode_steps, verbose=1)
+            iteration_count = agent.play(4000 * max_episode_steps, verbose=1)
             score = agent.score_model(100, verbose=0)
             #print(f"\n------------ FINAL Average reward: {score} -----------")
 
-            #agent.plot(name, learner.get_name())
-            data.append((learner.get_name(), name, step_count, score))
+            agent.plot(name, learner.get_name())
+            data.append((learner.get_name(), name, iteration_count, score))
             #learner_meter.write(f"{learner.get_name()} Done. Final Average Score: {score}")
-            del agent
-            print(f"{name} {learner.get_name()} Done. Final Average Score: {score}. Step_count = {step_count}")
+            print(f"{learner.get_name()} Done. Final Average Score: {score}")
 
     print(data)
 
