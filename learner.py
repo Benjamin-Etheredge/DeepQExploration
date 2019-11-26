@@ -114,7 +114,7 @@ class DeepQ:
         # TODO refactor
 
         # self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
-        self.model.train_on_batch(x=sample.states, y=current_all_action_values)
+        self.model.train_on_batch(x=sample.states, y=current_all_action_values, reset_metrics=False)
 
 
 class DoubleDeepQ(DeepQ):
@@ -128,8 +128,11 @@ class DoubleDeepQ(DeepQ):
         return "DoubleDeepQ"
 
     def qPrime(self, target_prime_action_values, prime_action_values):
-        max_action = np.argmax(target_prime_action_values)
-        return prime_action_values[max_action]
+        # TODO verify overwritting
+        max_action = np.argmax(prime_action_values)
+        return target_prime_action_values[max_action]
+        #max_action = np.argmax(target_prime_action_values)
+        #return prime_action_values[max_action]
 
 
 # NOTE Extends DoubleDeepQ and NOT vanilla DeepQ
