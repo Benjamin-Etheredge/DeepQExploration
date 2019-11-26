@@ -40,14 +40,14 @@ class Agent:
         # Easily Adjusted hyperparameters
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
-        self.target_network_updating_interval = self.max_episode_steps*1
+        self.target_network_updating_interval = int(self.max_episode_steps*0.2)
         self.sample_size = sample_size
         #self.target_network_updating_interval = target_network_updating_interval
         self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
         #self.randomChoiceDecayRate = randomChoiceDecayRate
         if random_choice_decay_min == 0:
             random_choice_decay_min = 0.0000000000000001
-        self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episode_steps * 500)))
+        self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episode_steps)))
         #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
 
