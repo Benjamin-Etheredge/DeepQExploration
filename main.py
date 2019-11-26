@@ -66,23 +66,26 @@ if __name__ == "__main__":
 
             #if name != "LunarLander-v2":
                 #continue
+            print(f"\nStarting: {name} {learner.get_name()}")
             env = gym.make(name)
             feature_count = env.observation_space.shape[0]
             action_count = env.action_space.n
-            gamma = float(np.power(0.0001, 1./max_episode_steps))
+            gamma = float(np.power(0.0001, 1./max_episode_steps))  # Scale gamma to approach zero near max_episode_steps
             agent = Agent(
                 learner=learner(input_dimension=feature_count,
                                   output_dimension=action_count,
-                                  nodesPerLayer=64,
+                                  nodesPerLayer=128,
+                                  learningRate=0.0001,
                                   numLayers=2,
                                   gamma=gamma),
                 scorer=Scores(100),
-                replayBuffer=ReplayBuffer(max_length=1000*max_episode_steps, start_length=300*max_episode_steps),
+                sample_size=16,
+                replayBuffer=ReplayBuffer(max_length=1000*max_episode_steps, start_length=10*max_episode_steps),
                 environment=env,
                 reward_threshold=reward_threshold,
-                random_choice_decay_min=0.01,
+                random_choice_decay_min=0.1,
                 max_episode_steps=max_episode_steps,
-                verbose=1)
+                verbose=0)
             step_count = agent.play(4000 * max_episode_steps, verbose=1)
             score = agent.score_model(100, verbose=0)
             #print(f"\n------------ FINAL Average reward: {score} -----------")
@@ -90,8 +93,8 @@ if __name__ == "__main__":
             #agent.plot(name, learner.get_name())
             data.append((learner.get_name(), name, step_count, score))
             #learner_meter.write(f"{learner.get_name()} Done. Final Average Score: {score}")
-            del agent
-            print(f"{name} {learner.get_name()} Done. Final Average Score: {score}. Step_count = {step_count}")
+            del agent  # Currenlty required to cleanup tqdm status bars when verbose > 0
+            print(f"{name} {learner.get_name()} Done. Final Average Score: {score}. Step_count = {step_count}\n")
 
     print(data)
 
