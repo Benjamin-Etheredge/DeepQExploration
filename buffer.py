@@ -67,6 +67,7 @@ class ReplayBuffer:
 
         if buffer is None:
             buffer = collections.deque([], self.max_length)
+            #buffer = []
         self.buffer = buffer
 
     @property
@@ -87,7 +88,7 @@ class ReplayBuffer:
 
     def dequeue(self):
         logging.debug('dequeue')
-        #self.buffer = self.buffer[1:]
+        self.buffer.popleft()
         pass
 
     def isFull(self):
@@ -130,7 +131,12 @@ class ReplayBuffer:
         return self.randomSample(sample_size)
 
     def randomSample(self, numberOfSamples):
-        return ReplayBuffer(numberOfSamples, buffer=random.sample(self.buffer, numberOfSamples))
+        sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
+        samples = [self.buffer[idx] for idx in sample_idxs]
+        return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
+
+    def update(self, indexs, loss):
+        pass
 
     def log(self):
         logging.info(f"start buffer size: {self.start_length}")
