@@ -21,8 +21,8 @@ class Agent:
                  scorer: Scores = Scores(100),
                  reward_threshold: int = None,
                  max_episode_steps=None,
-                 sample_size=16,
-                 random_choice_decay_min: float = 0.01,
+                 sample_size=128,
+                 random_choice_decay_min: float = 0.05,
                  verbose=0):
 
 
