@@ -63,7 +63,7 @@ class DeepQ:
             hiddenLayer = keras.layers.Dense(nodes_per_layer, activation='relu')(hiddenLayer)
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hiddenLayer)
         model = keras.Model(inputs=inputs, outputs=predictions)
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
         keras.utils.plot_model(model, to_file=f"model.png")
         return model
 

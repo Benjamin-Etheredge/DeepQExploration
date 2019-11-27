@@ -83,9 +83,10 @@ if __name__ == "__main__":
                 replayBuffer=ReplayBuffer(max_length=1000*max_episode_steps, start_length=10*max_episode_steps),
                 environment=env,
                 reward_threshold=reward_threshold,
-                random_choice_decay_min=0.01,
+                random_choice_decay_min=0.001,
                 max_episode_steps=max_episode_steps,
-                verbose=0)
+                max_episodes=500,
+                verbose=1)
             step_count = agent.play(4000 * max_episode_steps, verbose=1)
             score = agent.score_model(100, verbose=0)
             #print(f"\n------------ FINAL Average reward: {score} -----------")

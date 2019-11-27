@@ -33,7 +33,7 @@ class Agent:
         self.env = environment
         # This is needed to keep multiple game windows from opening up when scoring
         self.scoring_env = deepcopy(self.env)
-        self.random_action_rate = 1.1
+        self.random_action_rate = 1.0
         self.scores = scorer
         self.verbose = verbose
         self.steps_per_game_scorer = Scores(100)
@@ -65,16 +65,36 @@ class Agent:
         meter_bar_format_elapsed = "{desc}: {n_fmt} [Elapsed: {elapsed}, {rate_fmt}]"
         meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
         running_average_fmt = "{desc}: {total_fmt} [Goal: " + str(reward_threshold) + "]"
+        self.tqdm_graphs = []
         self.step_meter = tqdm(total=1, initial=0, desc="Steps", unit="steps", disable=status_bars_disabled, bar_format=meter_bar_format_elapsed)
+        self.tqdm_graphs.append(self.step_meter)
         self.game_meter = tqdm(total=1, initial=0, desc="Games", unit="games", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.tqdm_graphs.append(self.game_meter)
         self.model_update_counter = tqdm(total=1, initial=0, desc="Model Updates", unit="updates", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.tqdm_graphs.append(self.model_update_counter)
         self.target_update_meter = tqdm(total=1, initial=0, desc="Target Updates", unit="updates", disable=status_bars_disabled, bar_format=meter_bar_format)
+        self.tqdm_graphs.append(self.target_update_meter)
         self.random_monitor = tqdm(total=self.random_action_rate, desc="Current Random Action Rate", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.random_monitor)
         self.game_step_monitor = tqdm(total=0, desc="Average Steps per game over past 100 games", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.game_step_monitor)
         self.on_policy_monitor = tqdm(total=0, desc="On-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
+        self.tqdm_graphs.append(self.on_policy_monitor)
         self.off_policy_monitor = tqdm(total=0, desc="Off-Policy Evaluation Score", unit="evals", disable=status_bars_disabled, bar_format=running_average_fmt)
+        self.tqdm_graphs.append(self.off_policy_monitor)
         self.variance_monitor = tqdm(total=0, desc="Running Variance", unit="evals", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.variance_monitor)
+        self.variance_count_monitor = tqdm(total=0, desc="Variance Counts", unit="evals", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.variance_count_monitor)
+        self.loss_monitor = tqdm(total=0, desc="Running Loss", unit="evals", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.variance_monitor)
+        self.loss_counter = tqdm(total=0, desc="Loss Counts", unit="evals", disable=status_bars_disabled, bar_format="{desc}: {total_fmt}")
+        self.tqdm_graphs.append(self.variance_count_monitor)
         logging.info(f"max_episode_steps: {self.max_episode_steps}")
+
+    def __del__(self):
+        for tqdm_graph in self.tqdm_graphs:
+            tqdm_graph.close()
 
     def is_done_learning(self):
         logging.debug('isDoneLearning')
@@ -84,8 +104,8 @@ class Agent:
         variance_of_scores = self.scores.get_variance()
         self.variance_monitor.total = variance_of_scores
         self.variance_monitor.update(0)
-        #return self.scores.get_variance() <= abs(0.01*self.reward_stopping_threshold)
-        return average_reward >= self.reward_stopping_threshold
+        return self.scores.get_variance() <= abs(0.01*self.reward_stopping_threshold)
+        #return average_reward >= self.reward_stopping_threshold
 
     def shouldSelectRandomAction(self):
         logging.debug('shouldSelectRandomAction')

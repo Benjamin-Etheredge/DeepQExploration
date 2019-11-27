@@ -2,13 +2,13 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 
-
 class Scores:
 
     def __init__(self, score_count: int = 200):
         self.numberOfRewardsToAverageOver = score_count
         self.last_average = 0
         self.last_scores = np.full(score_count, -200)
+        #self.last_scores = []
         self.index_of_next_score = 0
         self.all_scores = []
         self.all_averages = []
@@ -18,8 +18,9 @@ class Scores:
         self.last_scores[self.index_of_next_score] = reward
         self.index_of_next_score += 1
         self.index_of_next_score %= self.numberOfRewardsToAverageOver
-        average_reward = np.mean(self.last_scores)
-        self.all_averages.append(average_reward)
+        if len(self.all_scores) >= self.numberOfRewardsToAverageOver:
+            average_reward = np.mean(self.last_scores)
+            self.all_averages.append(average_reward)
 
     def reset(self):
         self.last_average = 0
@@ -35,8 +36,8 @@ class Scores:
             return -200
 
     def get_variance(self):
-        if len(self.all_averages) > 20:
-            return np.var(self.all_averages[-20:])
+        if len(self.all_scores) > self.numberOfRewardsToAverageOver:  # not the best but okay
+            return np.var(self.all_scores[-self.numberOfRewardsToAverageOver:])
         else:
             return float("inf")
 
