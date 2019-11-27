@@ -35,6 +35,13 @@ if __name__ == "__main__":
         "Acrobot-v1",
         "LunarLander-v2",
         ]
+    games_to_play = [
+        400,
+        1000,
+        1000,
+        500,
+        1000,
+    ]
     #env = gym.make("LunarLander-v2")
     #env = gym.make("MountainCar-v0")
     env = gym.make("CartPole-v0")
@@ -48,7 +55,7 @@ if __name__ == "__main__":
     temp = env.reward_range
     data = []
     #for name, max_episode_steps, reward_threshold in tqdm(games):
-    for name, max_episode_steps, reward_threshold in games:
+    for (name, max_episode_steps, reward_threshold), max_episodes in zip(games, games_to_play):
 
         #bar = tqdm(range(3), bar_format="{postfix[0]} {postfix[1][value]:>8.2g}", postfix=["Learner", dict(value=1]))] desc="Learners")
         #learner_meter = tqdm(range(3), desc="Learners")
