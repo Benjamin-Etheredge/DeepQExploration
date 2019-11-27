@@ -21,6 +21,7 @@ class Agent:
                  scorer: Scores = Scores(100),
                  reward_threshold: int = None,
                  max_episode_steps=None,
+                 max_episodes=None,
                  sample_size=128,
                  random_choice_decay_min: float = 0.05,
                  verbose=0):
@@ -40,14 +41,17 @@ class Agent:
         # Easily Adjusted hyperparameters
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
-        self.target_network_updating_interval = int(self.max_episode_steps*0.2)
+        if max_episode_steps is None:
+            max_episodes = float("inf")
+        self.max_episodes = max_episodes
+        self.target_network_updating_interval = int(self.max_episode_steps*0.5)
         self.sample_size = sample_size
         #self.target_network_updating_interval = target_network_updating_interval
         self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
         #self.randomChoiceDecayRate = randomChoiceDecayRate
         if random_choice_decay_min == 0:
             random_choice_decay_min = 0.0000000000000001
-        self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episode_steps)))
+        self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episode_steps*400)))
         #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
 
@@ -121,9 +125,10 @@ class Agent:
         sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
         # npSample = convertSampleToNumpyForm(sample)
         # self.learner.update(npSample)
-        losses = self.learner.update(sample)
-        self.replay_buffer.update(sample_idxs, losses)
+        loss = self.learner.update(sample)
+        self.replay_buffer.update(sample_idxs, loss)
         self.model_update_counter.update(1)
+        return loss
 
     # TODO implement actual logger
     def should_log(self, iteration):
@@ -152,10 +157,28 @@ class Agent:
         total_steps = 0
         start_time = timer()
         iteration_time = start_time
-        while not self.is_done_learning():
+        convergence_counter = 0
+        variance_counter = 0
+        while total_steps <= step_limit and self.max_episodes > iteration:
             # print("Start Iteration: {}".format(iteration))
             iteration += 1
             self.game_meter.update(1)
+            average_reward = self.scores.average_reward()
+            self.off_policy_monitor.total = average_reward
+            self.off_policy_monitor.update(0)
+            variance_of_scores = self.scores.get_variance()
+
+            self.variance_monitor.total = variance_of_scores
+            self.variance_monitor.update(0)
+            if self.replay_buffer.isReady() and variance_of_scores < np.abs(0.01 * self.reward_stopping_threshold):
+                variance_counter += 1
+                if variance_counter > 100:
+                    break
+            else:
+                variance_counter = 0
+
+            self.variance_count_monitor.total = convergence_counter
+            self.variance_count_monitor.update(0)
 
             if iteration % 100 == 0:
                 mini_score = self.score_model(3)
@@ -176,8 +199,6 @@ class Agent:
             game_steps = 0
             #self.learner.update_target_model()
             while not is_done:
-                if total_steps >= step_limit:
-                    return total_steps
 
                 if verbose > 2:
                     self.env.render()
@@ -193,7 +214,18 @@ class Agent:
                 step = next_step
 
                 if self.replay_buffer.isReady():
-                    self.update_learner()
+                    loss = self.update_learner()
+                    self.loss_monitor.total = loss
+                    self.loss_monitor.update(0)
+                    if loss < 0.05:
+                        convergence_counter += 1
+                        if convergence_counter > 100:
+                            break
+                    else:
+                        convergence_counter = 0
+                    self.loss_counter.total = convergence_counter
+                    self.loss_counter.update(0)
+
                     self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(total_steps):
