@@ -20,8 +20,8 @@ class Agent:
                  environment: gym.Env,
                  scorer: Scores = Scores(100),
                  reward_threshold: int = None,
-                 max_episode_steps=None,
-                 max_episodes=None,
+                 max_episode_steps=float("inf"),
+                 max_episodes=float("inf"),
                  sample_size=128,
                  random_choice_decay_min: float = 0.05,
                  verbose=0):
@@ -41,8 +41,6 @@ class Agent:
         # Easily Adjusted hyperparameters
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
-        if max_episode_steps is None:
-            max_episodes = float("inf")
         self.max_episodes = max_episodes
         self.target_network_updating_interval = int(self.max_episode_steps*0.5)
         self.sample_size = sample_size
