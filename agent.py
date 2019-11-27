@@ -64,8 +64,8 @@ class Agent:
         meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
         running_average_fmt = "{desc}: {total_fmt} [Goal: " + str(reward_threshold) + "]"
         self.tqdm_graphs = []
-        self.step_meter = tqdm(total=1, initial=0, desc="Steps", unit="steps", disable=status_bars_disabled, bar_format=meter_bar_format_elapsed)
-        self.tqdm_graphs.append(self.step_meter)
+        self.step_meter = self.create_tdm(desc="Steps", unit="steps",
+                                          disable=status_bars_disabled, bar_format=meter_bar_format_elapsed)
         self.game_meter = tqdm(total=1, initial=0, desc="Games", unit="games", disable=status_bars_disabled, bar_format=meter_bar_format)
         self.tqdm_graphs.append(self.game_meter)
         self.model_update_counter = tqdm(total=1, initial=0, desc="Model Updates", unit="updates", disable=status_bars_disabled, bar_format=meter_bar_format)
@@ -91,8 +91,12 @@ class Agent:
         logging.info(f"max_episode_steps: {self.max_episode_steps}")
 
     def __del__(self):
-        for tqdm_graph in self.tqdm_graphs:
-            tqdm_graph.close()
+        for graph in self.tqdm_graphs:
+            graph.close()
+
+    def create_tdm(self, desc, bar_format, unit=None, disable=False, ):
+        self.tqdm_graphs.append(tqdm(total=1, initial=0, desc=desc, unit="updates", disable=disable, bar_format=bar_format))
+        return self.tqdm_graphs[-1]
 
     def is_done_learning(self):
         logging.debug('isDoneLearning')
