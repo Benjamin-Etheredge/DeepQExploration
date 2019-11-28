@@ -70,6 +70,11 @@ class ReplayBuffer:
             #buffer = []
         self.buffer = buffer
 
+        self._state_cache = None
+        self._next_state_cache = None
+        self._action_cache = None
+        self._is_done_cache = None
+
     @property
     def numberOfExperiences(self):
         logging.debug('numberOfExperiences')
@@ -106,6 +111,8 @@ class ReplayBuffer:
     @property
     def actions(self):
         return [item.action for item in self.buffer]
+        #for item in self.buffer:
+            #yield item.action
 
     @property
     def next_states(self):
@@ -165,4 +172,3 @@ class ReplayBuffer:
                 replace = random.randint(0, numberOfSamples - 1)
                 sample[replace] = experience
         return sample
-
