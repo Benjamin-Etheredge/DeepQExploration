@@ -7,13 +7,13 @@ import collections
 #TODO implement priority replay buffer
 
 class Experience:
-    def __init__(self, state, action, nextState, reward, isDone):
-        self.data = [state, action, nextState, reward, isDone]
+    def __init__(self, state, action, next_state, reward, is_done):
+        self.data = [state, action, next_state, reward, is_done]
         self.__state = np.array(state)
         self.__action = action
-        self.__nextState = np.array(nextState)
+        self.__nextState = np.array(next_state)
         self.__reward = reward
-        self.__isDone = isDone
+        self.__isDone = is_done
 
     def __repr__(self):
         return self.data
@@ -91,11 +91,11 @@ class ReplayBuffer:
         self.buffer.popleft()
         pass
 
-    def isFull(self):
+    def is_full(self):
         logging.debug('isReplayBufferFull')
         return self.numberOfExperiences > self.max_length
 
-    def isReady(self):
+    def is_ready(self):
         logging.debug('isReplayBuffer')
         return self.numberOfExperiences >= self.start_length
 
@@ -108,30 +108,40 @@ class ReplayBuffer:
         return [item.action for item in self.buffer]
 
     @property
-    def nextStates(self):
+    def next_states(self):
         return np.array([item.nextState for item in self.buffer])
 
     @property
     def rewards(self):
-        return [item.reward for item in self.buffer]
+        for item in self.buffer:
+            yield item.reward
 
     @property
-    def isDones(self):
-        return [item.isDone for item in self.buffer]
+    def is_dones(self):
+        #return [item.isDone for item in self.buffer]
+        for item in self.buffer:
+            yield item.isDone
+
+    @property
+    def training_items(self):
+        # self.data[1] = [state, action, next_state, reward, is_done]
+        #return self.data[1], self.data[3], self.data[4]
+        for item in self.buffer:
+            yield (item.action, item.reward, item.isDone)
 
     def append(self, experience):
-        if self.isFull():
+        if self.is_full():
             self.dequeue()
         self.buffer.append(experience)
 
-    def sample(self, sample_size=None):
+    def sample(self, sample_size):
         # return self.reservoirSampling(numberOfSamples)
-        if sample_size is None:
-            sample_size = self.sample_size
         return self.randomSample(sample_size)
 
     def randomSample(self, numberOfSamples):
-        sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
+        # numpy choice is way slower than random.sample
+        #sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
+        sample_idxs = random.sample(range(len(self.buffer)), numberOfSamples)
         samples = [self.buffer[idx] for idx in sample_idxs]
         return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
 
