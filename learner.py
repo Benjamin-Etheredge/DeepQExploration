@@ -5,72 +5,53 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from buffer import *
 
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
+#config = tf.ConfigProto()
+#config.gpu_options.allow_growth = True
+#session = tf.Session(config=config)
+
+
 
 class DeepQ:
-    name = "DeepQ"
-    def __init__(self, input_dimension, output_dimension,
-                 nodesPerLayer=128,  # TODO difference between 128 vs 256
-                 numLayers=1,
-                 batchSize=32,
-                 gamma=0.99,
-                 # learningRate=0.0005
-                 learningRate=0.001
-                 ):
+    def __init__(self,
+                 name,
+                 q_prime_function,
+                 build_model_function):
 
-        # Hyperparameters
-        self.nodes_per_layer = nodesPerLayer
-        self.number_of_layers = numLayers
-        self.batch_size = batchSize
+        self.name = name
+        self.q_prime_function = q_prime_function
+        self.build_model_function = build_model_function
+
+        self.gamma = None
+
+        self.model = None
+        self.target_model = None
+
+    def build_model(self, input_dimension, output_dimension,
+                    nodes_per_layer=128,  # TODO difference between 128 vs 256
+                    layer_count=1,
+                    gamma=0.99,
+                    learning_rate = 0.001):
         self.gamma = gamma
-
-        self.learning_rate = learningRate
-        # TODO evaluate decyaing LR
-        # self.LRdecayRate = LRdecayRate
-
-        self.model = self.build_model(input_dimension, output_dimension,
-                                      self.nodes_per_layer, self.number_of_layers, self.learning_rate)
-        self.target_model = self.build_model(input_dimension, output_dimension,
-                                             self.nodes_per_layer, self.number_of_layers, self.learning_rate)
+        self.model = self.build_model_function(input_dimension, output_dimension,
+                                      nodes_per_layer, layer_count, learning_rate)
+        self.target_model = self.build_model_function(input_dimension, output_dimension,
+                                             nodes_per_layer, layer_count, learning_rate)
         self.update_target_model()
 
-        logging.info(f"name: {self.get_name()}")
-        logging.info(f"nodesPerLayer: {self.nodes_per_layer}")
-        logging.info(f"numLayers: {self.number_of_layers}")
-        logging.info(f"learning rate: {self.learning_rate}")
-        logging.info(f"gamma: {self.gamma}")
-        logging.info(f"batchSize: {self.batch_size}")
-
-    @staticmethod
-    def get_name():
-        return "DeepQ"
+    def get_name(self):
+        return self.name
 
     def update_target_model(self):
         logging.debug('DeepQ - updateTargetModel')
         self.target_model.set_weights(self.model.get_weights())
 
-    # TODO pull out to factory method
-    @staticmethod
-    def build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
-        logging.debug('DeepQ - buildModel')
-        inputs = keras.Input(shape=(input_dimension,))
-        hiddenLayer = inputs
-        for _ in range(hidden_layer_count):
-            hiddenLayer = keras.layers.Dense(nodes_per_layer, activation='relu')(hiddenLayer)
-        predictions = keras.layers.Dense(output_dimension, activation='linear')(hiddenLayer)
-        model = keras.Model(inputs=inputs, outputs=predictions)
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        keras.utils.plot_model(model, to_file=f"model.png")
-        return model
-
     def log(self):
         pass
 
-    def getNextAction(self, state):
+    def get_next_action(self, state):
         logging.debug('DeepQ - getNextAction')
         action_values = self.model.predict_on_batch(np.atleast_2d(state))[0]
         # action_values = self.model.predict(np.atleast_2d(state))[0]
@@ -82,75 +63,114 @@ class DeepQ:
         # target_prime_action_values = self.targetModel.predict(statePrimes)
         # return target_prime_action_values
 
-    # TODO maybe make method passed in?
-    def qPrime(self, prime_action_values, action_values):
-        """
-        Return the Q prime for Deep Q
-        :param prime_action_values: expected values of actions for state prime
-        :param action_values:
-        :return:
-        """
-        logging.debug('DeepQ - qPrime')
-        return np.max(prime_action_values)
-
-    def update(self, sample):
+    def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
-        current_all_action_values = np.array(self.model.predict_on_batch(sample.states))
-        current_all_prime_action_values = self.model.predict_on_batch(sample.nextStates)
-        target_all_prime_action_values = self.target_model.predict_on_batch(sample.nextStates)
+        states = sample.states
+        next_states = sample.next_states
+        #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
+        #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
+        current_all_action_values = self.model.predict_on_batch(states)
+        current_all_prime_action_values = self.model.predict_on_batch(next_states)
+        target_all_prime_action_values = self.target_model.predict_on_batch(next_states)
+
+        #for idx in range(len(samples)):
+        #for idx, (action, reward, is_done) in enumerate(zip(sample.actions, sample.rewards, sample.isDones)):
         idx = 0
-        for action, reward, is_done in zip(sample.actions, sample.rewards, sample.isDones):
+        #for action, reward, is_done in zip(sample.actions, sample.rewards, sample.isDones):
+        #for idx, (action, reward, is_done) in enumerate(zip(sample.actions, sample.rewards, sample.isDones)):
+        for idx, (action, reward, is_done) in enumerate(sample.training_items):
             q_prime = 0
             if not is_done:
                 # TODO refactor
-                q_prime = self.qPrime(target_all_prime_action_values[idx], current_all_prime_action_values[idx])
+                q_prime = self.q_prime_function(target_all_prime_action_values[idx],
+                                                current_all_prime_action_values[idx])
                 # q_prime = self.qPrime(target_all_prime_action_values[idx], current_all_action_values[idx])
 
             actual_value = (self.gamma * q_prime) + reward
             current_all_action_values[idx][action] = actual_value
-            idx += 1
+            #idx += 1
 
         # TODO refactor
 
         # self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
-        losses = self.model.train_on_batch(x=sample.states, y=current_all_action_values, reset_metrics=False)
+        losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
         return losses
 
+class DeepQFactory:
 
-class DoubleDeepQ(DeepQ):
-    name = "DoubleDeepQ"
-    """
-    Reduce the overestimations by breaking up action seleciton and action evaluation
-    """
+    # Different Q-prime computating functions
+    @staticmethod
+    def vanilla_q_prime(target_prime_action_values, prime_action_values):
+        #return np.max(target_prime_action_values)
+        return max(target_prime_action_values)
 
     @staticmethod
-    def get_name():
-        return "DoubleDeepQ"
-
-    def qPrime(self, target_prime_action_values, prime_action_values):
-        # TODO verify overwritting
+    def double_deepq_q_prime(target_prime_action_values, prime_action_values):
         max_action = np.argmax(prime_action_values)
         return target_prime_action_values[max_action]
-        #max_action = np.argmax(target_prime_action_values)
-        #return prime_action_values[max_action]
-
-
-# NOTE Extends DoubleDeepQ and NOT vanilla DeepQ
-class DuelDeepQ(DoubleDeepQ):
-    name = "DuelDeepQ"
 
     @staticmethod
-    def get_name():
-        return "DuelDeepQ"
+    def clipped_double_deep_q_q_prime(target_prime_action_values, prime_action_values):
+        max_action_1 = np.argmax(target_prime_action_values)
+        max_action_2 = np.argmax(prime_action_values)
+        return min(prime_action_values[max_action_1], target_prime_action_values[max_action_2])
 
-
-    # TODO pull out to factory method
+    # Different Model Factory Methods
     @staticmethod
-    def build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
-        logging.debug('DuelQ - buildModel')
+    def create_vanilla_deep_q(*args, **kwargs):
+        return DeepQ(*args, name="Vanilla DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
 
+    @staticmethod
+    def create_double_deep_q(*args, **kwargs):
+        """
+        Reduce the overestimations by breaking up action seleciton and action evaluation
+        """
+        return DeepQ(*args, name="Double DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
+
+    @staticmethod
+    def create_clipped_double_deep_q(*args, **kwargs):
+        """
+        Reduce the overestimations by breaking up action seleciton and action evaluation
+        """
+        return DeepQ(*args, name="Double DeepQ", q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
+
+    @staticmethod
+    def create_duel_deep_q(*args, **kwargs):
+        return DeepQ(*args, name="Duel DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+
+    @staticmethod
+    def create_double_duel_deep_q(*args, **kwargs):
+        return DeepQ(*args, name="Double Duel DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+
+    @staticmethod
+    def create_clipped_double_duel_deep_q(*args, **kwargs):
+        return DeepQ(*args, name="Clipped Double Duel DeepQ",
+                     q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+
+    # Different Model Construction Methods.
+    @staticmethod
+    def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
+        inputs = keras.Input(shape=(input_dimension,))
+        hidden_layer = inputs
+        for _ in range(hidden_layer_count):
+            hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
+        predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
+        model = keras.Model(inputs=inputs, outputs=predictions)
+        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        keras.utils.plot_model(model, to_file=f"model.png")
+        return model
+
+    @staticmethod
+    def dueling_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
         # inputs = keras.Input(shape=(env.observation_space.shape[0],))
         inputs = keras.Input(shape=(input_dimension,))
 
@@ -190,8 +210,6 @@ class DuelDeepQ(DoubleDeepQ):
         keras.utils.plot_model(model, to_file=f"duel_model.png")
         return model
 
-
-# class SuperQ()
 
 def mean(array):
     return keras.backend.mean(array, axis=1, keepdims=True)
