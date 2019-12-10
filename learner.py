@@ -120,40 +120,40 @@ class DeepQFactory:
     # Different Model Factory Methods
     @staticmethod
     def create_vanilla_deep_q(*args, **kwargs):
-        return DeepQ(*args, name="Vanilla DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
-                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
+        return DeepQ(name="Vanilla DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
     def create_double_deep_q(*args, **kwargs):
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
-        return DeepQ(*args, name="Double DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
-                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
+        return DeepQ(name="Double DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
     def create_clipped_double_deep_q(*args, **kwargs):
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
-        return DeepQ(*args, name="Double DeepQ", q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
-                     build_model_function=DeepQFactory.vanilla_build_model, **kwargs)
+        return DeepQ(name="Clipped Double DeepQ", q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+                     build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
     def create_duel_deep_q(*args, **kwargs):
-        return DeepQ(*args, name="Duel DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
-                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+        return DeepQ(name="Duel DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
     def create_double_duel_deep_q(*args, **kwargs):
-        return DeepQ(*args, name="Double Duel DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
-                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+        return DeepQ(name="Double Duel DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+                     build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
     def create_clipped_double_duel_deep_q(*args, **kwargs):
-        return DeepQ(*args, name="Clipped Double Duel DeepQ",
+        return DeepQ(name="Clipped Double Duel DeepQ",
                      q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
-                     build_model_function=DeepQFactory.dueling_build_model, **kwargs)
+                     build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     # Different Model Construction Methods.
     @staticmethod
@@ -166,7 +166,7 @@ class DeepQFactory:
         model = keras.Model(inputs=inputs, outputs=predictions)
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
         model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
-        keras.utils.plot_model(model, to_file=f"model.png")
+        #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
     @staticmethod
@@ -188,13 +188,15 @@ class DeepQFactory:
         predictions_value = keras.layers.Dense(1, activation='linear')(value_hidden_layer)
 
         # Combine layers
-        advantageAverage = keras.layers.Lambda(mean)(predictions_advantage)
+        advantage_average = keras.layers.Lambda(mean)(predictions_advantage)
+        #advantage_average = keras.layers.AveragePooling1D()(predictions_advantage)
+        #advantage_average = keras.layers.Average()(predictions_advantage)
         # advantageAverage = keras.layers.Average()([predictionsAdvantage, predictionsAdvantage])
         # advantageAverage = keras.backend.mean(predictionsAdvantage)
         # print(advantageAverage)
         # advantageAverage = keras.backend.constant(advantageAverage, shape=(outputDimension, 1))
 
-        advantage = keras.layers.Subtract()([predictions_advantage, advantageAverage])
+        advantage = keras.layers.Subtract()([predictions_advantage, advantage_average])
 
         predictions = keras.layers.Add()([advantage, predictions_value])
 
@@ -207,9 +209,9 @@ class DeepQFactory:
         # model.compile(optimizer=keras.optimizers.RMSprop(lr=cls.learningRate),
                       #loss='mse')
         # metrics=['accuracy'])
-        keras.utils.plot_model(model, to_file=f"duel_model.png")
+        #keras.utils.plot_model(model, to_file=f"duel_model.png")
         return model
 
 
 def mean(array):
-    return keras.backend.mean(array, axis=1, keepdims=True)
+    return keras.backend.mean(array, axis=-1, keepdims=True)

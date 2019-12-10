@@ -30,15 +30,15 @@ if __name__ == "__main__":
 
     # Envrionments and reward thesholds
     environments = [
-        "CartPole-v0",
+        #"CartPole-v0",
         "CartPole-v1",
         "MountainCar-v0",
         "Acrobot-v1",
         "LunarLander-v2",
     ]
     games_to_play = [
-        400,
-        500,
+        #400,
+        600,
         1000,
         500,
         1000,
@@ -87,21 +87,24 @@ if __name__ == "__main__":
                 np.power(0.0001, 1. / max_episode_steps))  # Scale gamma to approach zero near max_episode_steps
             learner.build_model(input_dimension=feature_count, output_dimension=action_count,
                                 nodes_per_layer=128,
-                                learning_rate=0.0001,
+                                learning_rate=0.001,
+                                #learning_rate=0.0001,
                                 layer_count=2,
                                 gamma=gamma),
             start_length = int(max_episodes/10) * max_episode_steps
+            # TODO account for possible extra space from scoring
             max_possible_step_count = (max_episodes * max_episode_steps) + start_length
 
             agent = Agent(
                 learner=learner,
                 scorer=Scores(10),
-                sample_size=128,
+                sample_size=64,
+                #sample_size=128,
                 #replay_buffer=ReplayBuffer(max_length=1000 * max_episode_steps, start_length=start_length),
                 replay_buffer=ReplayBuffer(max_length=max_possible_step_count, start_length=start_length),
                 environment=env,
-                reward_threshold=reward_threshold+100,
-                random_choice_decay_min=0.01,
+                reward_threshold=reward_threshold,
+                random_choice_decay_min=0.00,
                 max_episode_steps=max_episode_steps,
                 max_episodes=max_episodes,
                 verbose=1)
@@ -114,7 +117,7 @@ if __name__ == "__main__":
             # learner_meter.write(f"{learner.get_name()} Done. Final Average Score: {score}")
             del agent  # Currenlty required to cleanup tqdm status bars when verbose > 0
             print(f"{name} {learner.get_name()} Done. Final Average Score: {score}. Step_count = {step_count}\n")
-            exit(1)
+            #exit(1)
 
     print(data)
 

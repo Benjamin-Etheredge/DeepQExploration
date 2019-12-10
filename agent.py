@@ -54,7 +54,7 @@ class Agent:
         if random_choice_decay_min == 0:
             random_choice_decay_min = 0.0000000000000001
         if self.decay_type == 'linear':
-            self.randomChoiceDecayRate = float((1.0 - random_choice_decay_min) / self.max_episodes)
+            self.randomChoiceDecayRate = float((1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes*.1)))
         else:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episodes)))
         #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
