@@ -30,7 +30,6 @@ class Agent:
                  early_stopping: bool = True,
                  verbose=0):
 
-
         self.learner = learner
         self.replay_buffer = replay_buffer
         self.env = environment
@@ -46,18 +45,19 @@ class Agent:
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
         self.max_episodes = max_episodes
-        self.target_network_updating_interval = int(self.max_episode_steps*0.5)
+        self.target_network_updating_interval = int(self.max_episode_steps * 0.5)
         self.sample_size = sample_size
         self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
-        #self.randomChoiceDecayRate = randomChoiceDecayRate
+        # self.randomChoiceDecayRate = randomChoiceDecayRate
         self.decay_type = decay_type
         if random_choice_decay_min == 0:
             random_choice_decay_min = 0.0000000000000001
         if self.decay_type == 'linear':
-            self.randomChoiceDecayRate = float((1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes*.1)))
+            self.randomChoiceDecayRate = float(
+                (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .1)))
         else:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episodes)))
-        #self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
+        # self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
 
         logging.info(f"Game: {self.env.unwrapped.spec.id}")
@@ -66,7 +66,6 @@ class Agent:
         logging.info(f"sampleSize: {self.sample_size}")
         logging.info(f"targetNetworkThreshold: {self.target_network_updating_interval}")
         logging.info(f"max_episode_steps: {self.max_episode_steps}")
-
 
         # TQDM Status Monitors setup
         status_bars_disabled = verbose == 0
@@ -79,7 +78,7 @@ class Agent:
                                           bar_format=meter_bar_format_elapsed)
         self.game_meter = self.create_tdm(total=self.max_episodes, desc="Games", unit="games",
                                           disable=status_bars_disabled)
-        self.model_update_counter = self.create_tdm(desc="Model Updates", unit="updates",disable=status_bars_disabled,
+        self.model_update_counter = self.create_tdm(desc="Model Updates", unit="updates", disable=status_bars_disabled,
                                                     bar_format=meter_bar_format)
         self.target_update_meter = self.create_tdm(desc="Target Updates", unit="updates", disable=status_bars_disabled,
                                                    bar_format=meter_bar_format)
@@ -106,10 +105,11 @@ class Agent:
 
     def create_tdm(self, bar_format=None, total=1, initial=0, desc="", unit="", disable=False, ):
         if bar_format is None:  # TODO combine if statement using kwargs
-            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable))
+            #self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ascii=True))
+            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70))
         else:
             self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable,
-                                         bar_format=bar_format))
+                                         bar_format=bar_format, ncols=70))
         return self.tqdm_graphs[-1]
 
     def is_done_learning(self):
@@ -120,8 +120,8 @@ class Agent:
         variance_of_scores = self.scores.get_variance()
         self.variance_monitor.total = variance_of_scores
         self.variance_monitor.update(0)
-        return self.scores.get_variance() <= abs(0.01*self.reward_stopping_threshold)
-        #return average_reward >= self.reward_stopping_threshold
+        return self.scores.get_variance() <= abs(0.01 * self.reward_stopping_threshold)
+        # return average_reward >= self.reward_stopping_threshold
 
     def shouldSelectRandomAction(self):
         logging.debug('shouldSelectRandomAction')
@@ -153,10 +153,10 @@ class Agent:
         # TODO set decay operator
         if self.decay_type == 'linear':
             self.random_action_rate = max(self.randomChoiceMinRate,
-                                         (self.random_action_rate - self.randomChoiceDecayRate))
+                                          (self.random_action_rate - self.randomChoiceDecayRate))
         else:
             self.random_action_rate = max(self.randomChoiceMinRate,
-                                         (self.randomChoiceDecayRate * self.random_action_rate))
+                                          (self.randomChoiceDecayRate * self.random_action_rate))
         # self.randomChoicePercentage = minRate + (maxRate - minRate) * np.exp(-decayRate * iteration)
         self.random_monitor.total = self.random_action_rate
         self.random_monitor.update(0)
@@ -203,7 +203,6 @@ class Agent:
         while not self.replay_buffer.is_ready():
             self.play_game(self.replay_buffer)
 
-
     def play(self, step_limit=float("inf"), verbose=0):
 
         self.prepare_buffer()
@@ -237,15 +236,15 @@ class Agent:
             self.variance_count_monitor.update(0)
 
             if iteration % 25 == 0:
-                #mini_score = self.score_model(1)
+                # mini_score = self.score_model(1)
                 mini_score = self.score_model(1, self.replay_buffer)
                 self.on_policy_monitor.total = mini_score
                 self.on_policy_monitor.update(0)
                 logging.info(f"\nitermediate score: {mini_score}\n")
-                #if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
+                # if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
                 if self.early_stopping and mini_score >= self.reward_stopping_threshold:
                     actual_score = self.score_model(200)
-                    #actual_score = self.score_model(100, self.replay_buffer)
+                    # actual_score = self.score_model(100, self.replay_buffer)
                     self.on_policy_monitor.total = actual_score
                     self.on_policy_monitor.update(0)
                     if actual_score >= self.reward_stopping_threshold:
@@ -256,7 +255,7 @@ class Agent:
             is_done = False
             total_reward = 0
             game_steps = 0
-            #self.learner.update_target_model()
+            # self.learner.update_target_model()
             while not is_done:
                 if verbose > 2:
                     self.env.render()
@@ -284,10 +283,10 @@ class Agent:
                     self.loss_counter.update(0)
                     '''
 
-                    #self.decayRandomChoicePercentage()
+                    # self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(total_steps):
-                        #self.update_target_model()
+                        # self.update_target_model()
                         pass
 
                 if verbose > 0 and self.should_log(total_steps):
@@ -299,9 +298,9 @@ class Agent:
             self.game_step_monitor.update(0)
             self.decayRandomChoicePercentage()
 
-        #self.plot()
+        # self.plot()
 
-        #self.score_model()
+        # self.score_model()
         assert total_steps > 0
         return total_steps
 
@@ -322,7 +321,7 @@ class Agent:
             self.render_game()
 
     def load_model(self, file_name):
-        #self.learner.load
+        # self.learner.load
         pass
 
     def save_model(self, file_name):
@@ -346,7 +345,6 @@ class Agent:
     def play_game_worker(self):
         pass
 
-
     def score_model(self, games=150, verbose=0):
         """
         scores = Scores(score_count=games)
@@ -357,32 +355,32 @@ class Agent:
         return scores.average_reward()
         #return np.mean(pool.map(self._map_play_game, range(games)))
         """
-        #from functools import partial
-        #partial_func = partial(play_game_parallel, self.learner)
-        #pool = multiprocessing.Pool(4)
-        #params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
-        #temp = pool.map(play_game_parallel, params)
-        #return_array = []
-        #procs = []
-        #for _ in range(games):
-            #reward = play_game_parallel(self.learner, deepcopy(self.scoring_env))
-            #proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
-            #proc = multiprocessing.Process(target=do_nothing)
-            #procs.append(proc)
-            #proc.start()
-            #proc.join()
+        # from functools import partial
+        # partial_func = partial(play_game_parallel, self.learner)
+        # pool = multiprocessing.Pool(4)
+        # params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
+        # temp = pool.map(play_game_parallel, params)
+        # return_array = []
+        # procs = []
+        # for _ in range(games):
+        # reward = play_game_parallel(self.learner, deepcopy(self.scoring_env))
+        # proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
+        # proc = multiprocessing.Process(target=do_nothing)
+        # procs.append(proc)
+        # proc.start()
+        # proc.join()
 
-            #total_reward = self.play_game()
-            #scores.append(total_reward)
-        #for proc in procs:
-            #proc.join()
+        # total_reward = self.play_game()
+        # scores.append(total_reward)
+        # for proc in procs:
+        # proc.join()
         scores = [self.play_game() for _ in range(games)]
         return np.mean(scores)
-
 
     def plot(self, game_name=None, learner_name=None):
         self.scores.plotA(game_name, learner_name)
         self.scores.plotB(game_name, learner_name)
+
 
 def play_game_parallel(model, env, shared):
     total_reward = 0
@@ -393,6 +391,7 @@ def play_game_parallel(model, env, shared):
         step, reward, done, _ = env.step(action_choice)
         total_reward += reward
     shared.append(total_reward)
+
+
 def do_nothing():
     pass
-

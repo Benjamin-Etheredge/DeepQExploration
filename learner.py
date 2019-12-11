@@ -9,8 +9,10 @@ from buffer import *
 
 
 #config = tf.ConfigProto()
+num_threads = os.cpu_count()
+tf.config.threading.set_inter_op_parallelism_threads(num_threads)
+tf.config.threading.set_intra_op_parallelism_threads(num_threads)
 #config.gpu_options.allow_growth = True
-#session = tf.Session(config=config)
 
 
 
@@ -71,7 +73,7 @@ class DeepQ:
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
-        current_all_action_values = self.model.predict_on_batch(states)
+        current_all_action_values = np.array(self.model.predict_on_batch(states)) # explictly make array due to TF eager
         current_all_prime_action_values = self.model.predict_on_batch(next_states)
         target_all_prime_action_values = self.target_model.predict_on_batch(next_states)
 
@@ -162,6 +164,7 @@ class DeepQFactory:
         hidden_layer = inputs
         for _ in range(hidden_layer_count):
             hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
+            #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
         model = keras.Model(inputs=inputs, outputs=predictions)
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
