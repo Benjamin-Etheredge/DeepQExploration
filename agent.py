@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from learner import *
 import multiprocessing
 from multiprocessing import Process, Queue
+import tensorflow as tf
 
 
 
@@ -41,6 +42,9 @@ class Agent:
         self.verbose = verbose
         self.steps_per_game_scorer = Scores(100)
         self.early_stopping = early_stopping
+        log_dir = f"logs/agent_{learner.name}" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.tensorboard_writer = tf.summary.create_file_writer(log_dir)
+        self.tensorboard_writer.set_as_default()
 
         # Easily Adjusted hyperparameters
         self.reward_stopping_threshold = reward_threshold
@@ -60,6 +64,7 @@ class Agent:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episodes)))
         # self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
+        self.iterations = 0
 
         logging.info(f"Game: {self.env.unwrapped.spec.id}")
         logging.info(f"Reward Target: {self.reward_stopping_threshold}")
@@ -119,6 +124,11 @@ class Agent:
         logging.debug('isDoneLearning')
         average_reward = self.scores.average_reward()
         self.off_policy_monitor.total = average_reward
+        with self.tensorboard_writer.as_default():
+            tf.summary.scalar("off_policy_average_reward", 0.5, self.iterations)
+            #self.tensorboard_writer.flush()
+
+        self.iterations+=1
         self.off_policy_monitor.update(0)
         variance_of_scores = self.scores.get_variance()
         self.variance_monitor.total = variance_of_scores
@@ -212,16 +222,19 @@ class Agent:
         if verbose > 1:
             self.score_model(1, verbose=verbose)
 
-        iteration = 0
+        game_count = 0
         total_steps = 0
         start_time = timer()
         iteration_time = start_time
         convergence_counter = 0
         variance_counter = 0
-        while total_steps <= step_limit and self.max_episodes > iteration:
-            # print("Start Iteration: {}".format(iteration))
+        while total_steps <= step_limit and self.max_episodes > game_count:
+            # print("Start Iteration: {}".format(game_count))
+            tf.summary.scalar("epsilon_rate_per_game", data=self.random_action_rate, step=total_steps)
+            tf.summary.scalar("buffer_size", data=len(self.replay_buffer), step=game_count)
+
             self.update_target_model()  # updating between games seems to perform significantly better than every C steps
-            iteration += 1
+            game_count += 1
             self.game_meter.update(1)
             average_reward = self.scores.average_reward()
             self.off_policy_monitor.total = average_reward
@@ -240,15 +253,17 @@ class Agent:
             self.variance_count_monitor.total = convergence_counter
             self.variance_count_monitor.update(0)
 
-            if iteration % 25 == 0:
+            if game_count % 25 == 0:
                 # mini_score = self.score_model(1)
                 mini_score = self.score_model(1, self.replay_buffer, verbose=verbose)
+                tf.summary.scalar("intermediate_on_policy_score", data=mini_score, step=game_count)
                 self.on_policy_monitor.total = mini_score
                 self.on_policy_monitor.update(0)
                 logging.info(f"\nitermediate score: {mini_score}\n")
                 # if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
                 if self.early_stopping and mini_score >= self.reward_stopping_threshold:
                     actual_score = self.score_model(200)
+                    tf.summary.scalar("on_policy_score", data=actual_score, step=game_count)
                     # actual_score = self.score_model(100, self.replay_buffer)
                     self.on_policy_monitor.total = actual_score
                     self.on_policy_monitor.update(0)
@@ -262,9 +277,11 @@ class Agent:
             game_steps = 0
             # self.learner.update_target_model()
             while not is_done:
+                tf.summary.scalar("epsilon_rate_per_step", data=self.random_action_rate, step=total_steps)
                 if verbose > 2:
                     self.env.render()
                 action_choice = self.getNextAction(step)
+                tf.summary.histogram("action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
                 self.step_meter.update(1)
@@ -277,6 +294,7 @@ class Agent:
 
                 if self.replay_buffer.is_ready():
                     loss = self.update_learner()
+                    tf.summary.scalar("loss", data=loss, step=total_steps)
                     '''
                     if loss < 0.05:
                         convergence_counter += 1
@@ -295,10 +313,14 @@ class Agent:
                         pass
 
                 if verbose > 0 and self.should_log(total_steps):
-                    self.log_play(iteration, iteration_time, start_time, step_limit, total_steps, verbose)
+                    self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
 
             self.scores.append(total_reward)
+            tf.summary.scalar("off_policy_game_score", data=total_reward, step=game_count)
             self.steps_per_game_scorer.append(game_steps)
+            tf.summary.scalar("steps_per_game", data=game_steps, step=game_count)
+            #tf.summary.scalar("aversteps_per_game", data=game_steps, step=game_count)
+            self.game_step_monitor.total = self.steps_per_game_scorer.average_reward()
             self.game_step_monitor.total = self.steps_per_game_scorer.average_reward()
             self.game_step_monitor.update(0)
             self.decayRandomChoicePercentage()

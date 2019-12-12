@@ -6,17 +6,17 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from buffer import *
+from datetime import datetime
+
 
 #writer = tf.summary.FileWriter("log")
 #writer = tf.summary.create_file_writer("logs")
-log_dir="logs/"
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 #config = tf.ConfigProto()
 #num_threads = os.cpu_count()
 #tf.config.threading.set_inter_op_parallelism_threads(num_threads)
 #tf.config.threading.set_intra_op_parallelism_threads(num_threads)
 #config.gpu_options.allow_growth = True
-train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+#train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 #train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 #test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
 
@@ -36,6 +36,10 @@ class DeepQ:
 
         self.model = None
         self.target_model = None
+        #log_dir = f"logs/{self.name}" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        #self.tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        #self.update_count = 0
+        #self.summary_writer = tf.summary.create_file_writer(log_dir)
 
     def build_model(self, input_dimension, output_dimension,
                     nodes_per_layer: int = 128,  # TODO difference between 128 vs 256
@@ -45,8 +49,11 @@ class DeepQ:
         self.gamma = gamma
         self.model = self.build_model_function(input_dimension, output_dimension,
                                       nodes_per_layer, layer_count, learning_rate)
+        #self.model.name = "Live_Network"
         self.target_model = self.build_model_function(input_dimension, output_dimension,
                                              nodes_per_layer, layer_count, learning_rate)
+        #self.target_model.name = "Target_Network"
+        #self.tensorboard_callback.set_model(self.model)
         self.update_target_model()
 
     def get_name(self):
@@ -55,6 +62,7 @@ class DeepQ:
     def update_target_model(self):
         logging.debug('DeepQ - updateTargetModel')
         self.target_model.set_weights(self.model.get_weights())
+        #self.tensorboard_callback.jkI(self.update_count, {"loss": losses})
 
     def log(self):
         pass
@@ -102,16 +110,31 @@ class DeepQ:
 
         # TODO refactor
 
-        self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
-                       callbacks=[tensorboard_callback])
-        losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
-        train_loss(losses)
+        #history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
+                       #callbacks=[self.tensorboard_callback])
+        #losses = history.history['loss']
+        losses = self.model.train_on_batch(x=states, y=current_all_action_values)
+        #self.tensorboard_callback.on_batch_end(self.update_count, {"loss": losses}))
+        #self.update_count += 1
+        #tf.summary.scalar('loss', losses)
+
+
+        #merged = tf.summary.merge_all()
+        #summary = sess.run(merged)
+        #sess = K.get_session()
+        #writer.add_summary(summary)
+
+        #train_loss(losses)
         #losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
         #tf.summary.scalar("loss", 0.5, step=losses)
         #summary = tf.summary(value=[tf.Summary.Value(tag="loss", simple_value=losses)])
-        #writer.add_summary(summary)
+        #self.summary_writer.add_summary(summary)
         #3return losses
-        return 4
+        return losses
+
+    #def __del__(self):
+        #self.tensorboard_callback.on_train_end(None)
+
 
 class DeepQFactory:
     # Different Q-prime computating functions
@@ -172,6 +195,8 @@ class DeepQFactory:
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
+        #model = keras.models.Sequential()
+        #model.add()
         inputs = keras.Input(shape=(input_dimension,))
         hidden_layer = inputs
         for _ in range(hidden_layer_count):
