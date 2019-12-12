@@ -8,13 +8,17 @@ from tensorflow import keras
 from buffer import *
 
 #writer = tf.summary.FileWriter("log")
-writer = tf.summary.create_file_writer("log")
-
+#writer = tf.summary.create_file_writer("logs")
+log_dir="logs/"
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 #config = tf.ConfigProto()
-num_threads = os.cpu_count()
-tf.config.threading.set_inter_op_parallelism_threads(num_threads)
-tf.config.threading.set_intra_op_parallelism_threads(num_threads)
+#num_threads = os.cpu_count()
+#tf.config.threading.set_inter_op_parallelism_threads(num_threads)
+#tf.config.threading.set_intra_op_parallelism_threads(num_threads)
 #config.gpu_options.allow_growth = True
+train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+#train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
+#test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
 
 
 
@@ -98,12 +102,16 @@ class DeepQ:
 
         # TODO refactor
 
-        # self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
+        self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
+                       callbacks=[tensorboard_callback])
         losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
-        tf.summary.scalar("loss", 0.5, step=losses)
+        train_loss(losses)
+        #losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
+        #tf.summary.scalar("loss", 0.5, step=losses)
         #summary = tf.summary(value=[tf.Summary.Value(tag="loss", simple_value=losses)])
         #writer.add_summary(summary)
-        return losses
+        #3return losses
+        return 4
 
 class DeepQFactory:
     # Different Q-prime computating functions
