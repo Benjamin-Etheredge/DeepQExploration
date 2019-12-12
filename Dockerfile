@@ -1,7 +1,7 @@
 FROM tensorflow/tensorflow:latest-py3
 RUN apt-get update && \
     apt-get install -y graphviz swig && \
-    pip install tqdm pydot graphviz matplotlib gym gym[box2d] Box2D \
+    pip install tqdm pydot graphviz matplotlib gym gym[box2d] box2d-py\
     && rm -rf /var/lib/apt/lists/*
 COPY . /app
 WORKDIR . /app
