@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     # Envrionments and reward thesholds
     environments = [
-        #"CartPole-v0",
+        "CartPole-v0",
         "CartPole-v1",
         "MountainCar-v0",
         "Acrobot-v1",
@@ -107,6 +107,7 @@ if __name__ == "__main__":
                 random_choice_decay_min=0.00,
                 max_episode_steps=max_episode_steps,
                 max_episodes=max_episodes,
+                early_stopping=False,
                 verbose=1)
             step_count = agent.play(4000 * max_episode_steps, verbose=1)
             score = agent.score_model(100, verbose=0)
