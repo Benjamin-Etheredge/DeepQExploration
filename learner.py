@@ -34,10 +34,10 @@ class DeepQ:
         self.target_model = None
 
     def build_model(self, input_dimension, output_dimension,
-                    nodes_per_layer=128,  # TODO difference between 128 vs 256
-                    layer_count=1,
-                    gamma=0.99,
-                    learning_rate = 0.001):
+                    nodes_per_layer: int = 128,  # TODO difference between 128 vs 256
+                    layer_count: int = 1,
+                    gamma: float = 0.99,
+                    learning_rate: float = 0.001):
         self.gamma = gamma
         self.model = self.build_model_function(input_dimension, output_dimension,
                                       nodes_per_layer, layer_count, learning_rate)
@@ -106,32 +106,31 @@ class DeepQ:
         return losses
 
 class DeepQFactory:
-
     # Different Q-prime computating functions
     @staticmethod
-    def vanilla_q_prime(target_prime_action_values, prime_action_values):
+    def vanilla_q_prime(target_prime_action_values, prime_action_values) -> float:
         #return np.max(target_prime_action_values)
         return max(target_prime_action_values)
 
     @staticmethod
-    def double_deepq_q_prime(target_prime_action_values, prime_action_values):
+    def double_deepq_q_prime(target_prime_action_values, prime_action_values) -> float:
         max_action = np.argmax(prime_action_values)
         return target_prime_action_values[max_action]
 
     @staticmethod
-    def clipped_double_deep_q_q_prime(target_prime_action_values, prime_action_values):
+    def clipped_double_deep_q_q_prime(target_prime_action_values, prime_action_values) -> float:
         max_action_1 = np.argmax(target_prime_action_values)
         max_action_2 = np.argmax(prime_action_values)
         return min(prime_action_values[max_action_1], target_prime_action_values[max_action_2])
 
     # Different Model Factory Methods
     @staticmethod
-    def create_vanilla_deep_q(*args, **kwargs):
+    def create_vanilla_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Vanilla DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
-    def create_double_deep_q(*args, **kwargs):
+    def create_double_deep_q(*args, **kwargs) -> DeepQ:
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
@@ -139,7 +138,7 @@ class DeepQFactory:
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
-    def create_clipped_double_deep_q(*args, **kwargs):
+    def create_clipped_double_deep_q(*args, **kwargs) -> DeepQ:
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
@@ -147,17 +146,17 @@ class DeepQFactory:
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
-    def create_duel_deep_q(*args, **kwargs):
+    def create_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Duel DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
-    def create_double_duel_deep_q(*args, **kwargs):
+    def create_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Double Duel DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
-    def create_clipped_double_duel_deep_q(*args, **kwargs):
+    def create_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Clipped Double Duel DeepQ",
                      q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
