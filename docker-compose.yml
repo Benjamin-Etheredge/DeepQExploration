@@ -4,13 +4,18 @@ services:
     build: .
     volumes:
       - .:/app
-    command: python /app/main.py
+      - ./logs:/app/logs
+    command: python main.py
   tensorboard:
     image: tensorflow/tensorflow
     volumes:
     - ./logs:/logs
     ports:
-      - "6006:6006"
-    expose:
-      - "6006"
-    command: tensorboard --logdir /logs
+      - 0.0.0.0:6006:6006
+    #expose:
+      #- "6006"
+    #network_mode: "host"
+    #3command: tensorboard --helpful
+    command: tensorboard --logdir=/logs/train --bind_all
+    depends_on:
+      - agent
