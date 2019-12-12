@@ -1,0 +1,7 @@
+version: '3'
+services:
+  agent:
+    build: .
+    volumes:
+      - .:/app
+    command: python /app/main.py
