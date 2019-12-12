@@ -7,6 +7,8 @@ import tensorflow as tf
 from tensorflow import keras
 from buffer import *
 
+#writer = tf.summary.FileWriter("log")
+writer = tf.summary.create_file_writer("log")
 
 #config = tf.ConfigProto()
 num_threads = os.cpu_count()
@@ -98,6 +100,9 @@ class DeepQ:
 
         # self.model.fit(x=sample.states, y=current_all_action_values, batch_size=self.batchSize, epochs=1, verbose=0)
         losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
+        tf.summary.scalar("loss", 0.5, step=losses)
+        #summary = tf.summary(value=[tf.Summary.Value(tag="loss", simple_value=losses)])
+        #writer.add_summary(summary)
         return losses
 
 class DeepQFactory:
