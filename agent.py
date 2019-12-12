@@ -14,6 +14,7 @@ import multiprocessing
 from multiprocessing import Process, Queue
 
 
+
 class Agent:
     DECAY_TYPE_LINEAR = 'linear'
 
@@ -68,6 +69,7 @@ class Agent:
         logging.info(f"max_episode_steps: {self.max_episode_steps}")
 
         # TQDM Status Monitors setup
+
         status_bars_disabled = verbose == 0
         meter_bar_format_elapsed = "{desc}: {n_fmt} [Elapsed: {elapsed}, {rate_fmt}]"
         meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
@@ -104,12 +106,13 @@ class Agent:
             graph.close()
 
     def create_tdm(self, bar_format=None, total=1, initial=0, desc="", unit="", disable=False, ):
+        #tqdm.bar_format
         if bar_format is None:  # TODO combine if statement using kwargs
             #self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ascii=True))
-            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70))
+            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70, ascii=True))
         else:
             self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable,
-                                         bar_format=bar_format, ncols=70))
+                                         bar_format=bar_format, ncols=70, ascii=True))
         return self.tqdm_graphs[-1]
 
     def is_done_learning(self):
@@ -203,9 +206,11 @@ class Agent:
         while not self.replay_buffer.is_ready():
             self.play_game(self.replay_buffer)
 
-    def play(self, step_limit=float("inf"), verbose=0):
+    def play(self, step_limit=float("inf"), verbose: int = 0):
 
         self.prepare_buffer()
+        if verbose > 1:
+            self.score_model(1, verbose=verbose)
 
         iteration = 0
         total_steps = 0
@@ -237,7 +242,7 @@ class Agent:
 
             if iteration % 25 == 0:
                 # mini_score = self.score_model(1)
-                mini_score = self.score_model(1, self.replay_buffer)
+                mini_score = self.score_model(1, self.replay_buffer, verbose=verbose)
                 self.on_policy_monitor.total = mini_score
                 self.on_policy_monitor.update(0)
                 logging.info(f"\nitermediate score: {mini_score}\n")
@@ -327,12 +332,14 @@ class Agent:
     def save_model(self, file_name):
         pass
 
-    def play_game(self, buffer=None):
+    def play_game(self, buffer=None, verbose: int = 0):
         total_reward = 0
         done = False
         step = self.scoring_env.reset()
         previous_step = step
         while not done:
+            if verbose > 1:
+                self.scoring_env.render()
             action_choice = self.learner.get_next_action(step)
             step, reward, done, _ = self.scoring_env.step(action_choice)
             if buffer is not None:
@@ -345,7 +352,7 @@ class Agent:
     def play_game_worker(self):
         pass
 
-    def score_model(self, games=150, verbose=0):
+    def score_model(self, games=150, buffer=None, verbose: int = 0):
         """
         scores = Scores(score_count=games)
 
@@ -374,7 +381,7 @@ class Agent:
         # scores.append(total_reward)
         # for proc in procs:
         # proc.join()
-        scores = [self.play_game() for _ in range(games)]
+        scores = [self.play_game(buffer, verbose) for _ in range(games)]
         return np.mean(scores)
 
     def plot(self, game_name=None, learner_name=None):
