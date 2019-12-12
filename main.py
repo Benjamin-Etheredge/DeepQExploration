@@ -20,27 +20,19 @@ logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(level
 logging.warning('This will get logged to a file')
 
 if __name__ == "__main__":
-    import cProfile
-
-    # pr = cProfile.Profile()
-    # pr.disable()
-
-    # agent = Agent(DeepQ, ReplayBuffer, 'LunarLander-v2')
-    # agent = Agent(DoubleDeepQ, ReplayBuffer, 'LunarLander-v2')
-
     # Envrionments and reward thesholds
     environments = [
-        "CartPole-v0",
-        "CartPole-v1",
-        "MountainCar-v0",
-        "Acrobot-v1",
+        #"CartPole-v0",
+        #"CartPole-v1",
+        #"MountainCar-v0",
+        #"Acrobot-v1",
         "LunarLander-v2",
     ]
     games_to_play = [
         #400,
-        600,
-        1000,
-        500,
+        #600,
+        #1000,
+        #500,
         1000,
     ]
     learners = [
@@ -50,8 +42,6 @@ if __name__ == "__main__":
         DeepQFactory.create_duel_deep_q(),
         DeepQFactory.create_double_duel_deep_q(),
         DeepQFactory.create_clipped_double_duel_deep_q()
-        #ClippedDoubleDeepQ,
-        #DuelDeepQ,
         #SuperQ,
     ]
     # env = gym.make("LunarLander-v2")
@@ -108,8 +98,8 @@ if __name__ == "__main__":
                 max_episode_steps=max_episode_steps,
                 max_episodes=max_episodes,
                 early_stopping=False,
-                verbose=1)
-            step_count = agent.play(4000 * max_episode_steps, verbose=1)
+                verbose=0)
+            step_count = agent.play(4000 * max_episode_steps, verbose=0)
             score = agent.score_model(100, verbose=0)
             # print(f"\n------------ FINAL Average reward: {score} -----------")
 
