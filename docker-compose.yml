@@ -4,18 +4,21 @@ services:
     build: .
     volumes:
       - .:/app
-      - ./logs:/app/logs
-    command: python main.py
-  tensorboard:
-    image: tensorflow/tensorflow
-    volumes:
-    - ./logs:/logs
+      #- ./logs:/app/logs
     ports:
       - 0.0.0.0:6006:6006
-    #expose:
-      #- "6006"
+    command: bash -c "tensorboard --logdir=/app/logs --bind_all >& /dev/null  &  python main.py"
+  #
+  #tensorboard:
+    #image: tensorflow/tensorflow
+    #volumes:
+    #- ./logs:/logs
+    #ports:
+      #- 0.0.0.0:6006:6006
+    ##expose:
+      ##- "6006"
     #network_mode: "host"
     #3command: tensorboard --helpful
-    command: tensorboard --logdir=/logs/train --bind_all
-    depends_on:
-      - agent
+    #command: tensorboard --logdir=/logs --bind_all
+    #depends_on:
+      #- agent
