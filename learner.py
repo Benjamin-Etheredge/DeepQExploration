@@ -11,9 +11,7 @@ from buffer import *
 #writer = tf.summary.FileWriter("log")
 #writer = tf.summary.create_file_writer("logs")
 #config = tf.ConfigProto()
-num_threads = os.cpu_count()
-tf.config.threading.set_inter_op_parallelism_threads(num_threads)
-tf.config.threading.set_intra_op_parallelism_threads(num_threads)
+# TODO investigate making tf dataset to get boost from eager
 #config.gpu_options.allow_growth = True
 #train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 #train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
@@ -48,6 +46,7 @@ class DeepQ:
         self.gamma = gamma
         self.model = self.build_model_function(input_dimension, output_dimension,
                                       nodes_per_layer, layer_count, learning_rate)
+        #tf.summary.
         #self.model.name = "Live_Network"
         self.target_model = self.build_model_function(input_dimension, output_dimension,
                                              nodes_per_layer, layer_count, learning_rate)
@@ -81,8 +80,8 @@ class DeepQ:
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
-        states = sample.states
-        next_states = sample.next_states
+        states = np.array(sample.states)
+        next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
@@ -109,8 +108,9 @@ class DeepQ:
 
         # TODO refactor
 
-        #history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
+        ##history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
                        #callbacks=[self.tensorboard_callback])
+        #history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0)
         #losses = history.history['loss']
         losses = self.model.train_on_batch(x=states, y=current_all_action_values)
         #self.tensorboard_callback.on_batch_end(self.update_count, {"loss": losses}))
