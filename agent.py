@@ -9,11 +9,12 @@ from tqdm import tqdm
 from scores import *
 
 from timeit import default_timer as timer
+import time
 from learner import *
 import multiprocessing
 from multiprocessing import Process, Queue
 import tensorflow as tf
-
+from datetime import datetime
 
 
 class Agent:
@@ -114,7 +115,8 @@ class Agent:
         #tqdm.bar_format
         if bar_format is None:  # TODO combine if statement using kwargs
             #self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ascii=True))
-            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70, ascii=True))
+            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70,
+                                         ascii=True))
         else:
             self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable,
                                          bar_format=bar_format, ncols=70, ascii=True))
@@ -230,7 +232,7 @@ class Agent:
         variance_counter = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
             # print("Start Iteration: {}".format(game_count))
-            tf.summary.scalar("epsilon_rate_per_game", data=self.random_action_rate, step=total_steps)
+            tf.summary.scalar("epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             tf.summary.scalar("buffer_size", data=len(self.replay_buffer), step=game_count)
 
             self.update_target_model()  # updating between games seems to perform significantly better than every C steps
@@ -276,8 +278,9 @@ class Agent:
             total_reward = 0
             game_steps = 0
             # self.learner.update_target_model()
+            game_start_time = time.time()
             while not is_done:
-                tf.summary.scalar("epsilon_rate_per_step", data=self.random_action_rate, step=total_steps)
+                #tf.summary.scalar("epsilon_rate_per_step", data=self.random_action_rate, step=total_steps)
                 if verbose > 2:
                     self.env.render()
                 action_choice = self.getNextAction(step)
@@ -294,6 +297,7 @@ class Agent:
 
                 if self.replay_buffer.is_ready():
                     loss = self.update_learner()
+                    #tf.summary.scalar("", data=loss, step=total_steps)
                     tf.summary.scalar("loss", data=loss, step=total_steps)
                     '''
                     if loss < 0.05:
@@ -315,6 +319,11 @@ class Agent:
                 if verbose > 0 and self.should_log(total_steps):
                     self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
 
+            game_stop_time = time.time()
+            elapsed_seconds = game_stop_time - game_start_time
+            moves_per_second = game_steps / elapsed_seconds
+            tf.summary.scalar("move_per_second_per_game", data=moves_per_second, step=game_count)
+            tf.summary.scalar("off_policy_game_score", data=total_reward, step=game_count)
             self.scores.append(total_reward)
             tf.summary.scalar("off_policy_game_score", data=total_reward, step=game_count)
             self.steps_per_game_scorer.append(game_steps)
