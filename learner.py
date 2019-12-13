@@ -6,15 +6,14 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from buffer import *
-from datetime import datetime
 
 
 #writer = tf.summary.FileWriter("log")
 #writer = tf.summary.create_file_writer("logs")
 #config = tf.ConfigProto()
-#num_threads = os.cpu_count()
-#tf.config.threading.set_inter_op_parallelism_threads(num_threads)
-#tf.config.threading.set_intra_op_parallelism_threads(num_threads)
+num_threads = os.cpu_count()
+tf.config.threading.set_inter_op_parallelism_threads(num_threads)
+tf.config.threading.set_intra_op_parallelism_threads(num_threads)
 #config.gpu_options.allow_growth = True
 #train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 #train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
