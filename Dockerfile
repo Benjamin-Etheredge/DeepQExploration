@@ -4,7 +4,7 @@ RUN apt-get update && \
     pip install tqdm pydot graphviz matplotlib gym gym[box2d] box2d-py\
     && rm -rf /var/lib/apt/lists/*
 COPY . /app
-WORKDIR . /app
+WORKDIR /app
 CMD ["python", "main.py"]
 # TODO get mounting for project files working
 #RUN pip install -r /app/requirements.txt
