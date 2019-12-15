@@ -1,14 +1,15 @@
-import logging
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+import tensorflow.compat.v1 as tf
+tf.set_random_seed(4)
+from tensorflow.compat.v1 import keras
 from buffer import *
+#import  tensorflow.compat.v2.k
 
 
-#writer = tf.summary.FileWriter("log")
+##writer = tf.summary.FileWriter("log")
 #writer = tf.summary.create_file_writer("logs")
 #config = tf.ConfigProto()
 # TODO investigate making tf dataset to get boost from eager
@@ -16,7 +17,6 @@ from buffer import *
 #train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 #train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 #test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
-
 
 
 class DeepQ:
@@ -58,7 +58,6 @@ class DeepQ:
         return self.name
 
     def update_target_model(self):
-        logging.debug('DeepQ - updateTargetModel')
         self.target_model.set_weights(self.model.get_weights())
         #self.tensorboard_callback.jkI(self.update_count, {"loss": losses})
 
@@ -66,7 +65,6 @@ class DeepQ:
         pass
 
     def get_next_action(self, state):
-        logging.debug('DeepQ - getNextAction')
         action_values = self.model.predict_on_batch(np.atleast_2d(state))[0]
         # action_values = self.model.predict(np.atleast_2d(state))[0]
         return np.argmax(action_values)
@@ -156,7 +154,7 @@ class DeepQFactory:
     # Different Model Factory Methods
     @staticmethod
     def create_vanilla_deep_q(*args, **kwargs) -> DeepQ:
-        return DeepQ(name="Vanilla DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+        return DeepQ(name="Vanilla_DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
@@ -164,7 +162,7 @@ class DeepQFactory:
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
-        return DeepQ(name="Double DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+        return DeepQ(name="Double_DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
@@ -172,22 +170,22 @@ class DeepQFactory:
         """
         Reduce the overestimations by breaking up action seleciton and action evaluation
         """
-        return DeepQ(name="Clipped Double DeepQ", q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+        return DeepQ(name="Clipped_Double_DeepQ", q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.vanilla_build_model, *args, **kwargs)
 
     @staticmethod
     def create_duel_deep_q(*args, **kwargs) -> DeepQ:
-        return DeepQ(name="Duel DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
+        return DeepQ(name="Duel_DeepQ", q_prime_function=DeepQFactory.vanilla_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
     def create_double_duel_deep_q(*args, **kwargs) -> DeepQ:
-        return DeepQ(name="Double Duel DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
+        return DeepQ(name="Double_Duel_DeepQ", q_prime_function=DeepQFactory.double_deepq_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
     def create_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
-        return DeepQ(name="Clipped Double Duel DeepQ",
+        return DeepQ(name="Clipped_Double_Duel_DeepQ",
                      q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 

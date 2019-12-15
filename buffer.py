@@ -1,5 +1,4 @@
 import numpy as np
-import logging
 import random
 import collections
 
@@ -77,7 +76,6 @@ class ReplayBuffer:
 
     @property
     def numberOfExperiences(self):
-        logging.debug('numberOfExperiences')
         # TODO optimize with caching/ check for modifying
         return len(self.buffer)
 
@@ -92,16 +90,13 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def dequeue(self):
-        logging.debug('dequeue')
         self.buffer.popleft()
         pass
 
     def is_full(self):
-        logging.debug('isReplayBufferFull')
         return self.numberOfExperiences > self.max_length
 
     def is_ready(self):
-        logging.debug('isReplayBuffer')
         return self.numberOfExperiences >= self.start_length
 
     @property
@@ -156,14 +151,13 @@ class ReplayBuffer:
         pass
 
     def log(self):
-        logging.info(f"start buffer size: {self.start_length}")
-        logging.info(f"max buffer size: {self.max_length}")
+        pass
+        #3logging.info(f"max buffer size: {self.max_length}")
 
     # Reservoir Sampling
     #TODO why did this have such POOR performance compared to random.sample????
     # Returns a sample of input data
     def reservoirSampling(self, numberOfSamples):
-        logging.debug('Sampling')
         sample = ReplayBuffer(numberOfSamples)
         for idx, experience in enumerate(self.buffer):
             if idx < numberOfSamples:

@@ -4,29 +4,28 @@
 from agent import *
 from buffer import *
 from learner import *
-import logging
 
 # create logger with 'spam_application'
 
-logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-logging.warning('This will get logged to a file')
+#logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+#logging.warning('This will get logged to a file')
 
 if __name__ == "__main__":
     print(f"cpus: {os.cpu_count()}")
     # Envrionments and reward thesholds
     environments = [
-        "CartPole-v0",
+        #"CartPole-v0",
         #"CartPole-v1",
         #"MountainCar-v0",
         #"Acrobot-v1",
-        #"LunarLander-v2",
+        "LunarLander-v2",
     ]
     games_to_play = [
-        400,
+        #400,
         #600,
         #1000,
         #500,
-        #1000,
+        1000,
     ]
     learners = [
         DeepQFactory.create_vanilla_deep_q(),
@@ -123,6 +122,6 @@ if __name__ == "__main__":
     '''
 
     # pr.disable()
-    agent.learner.model.save_weights("model.h5")
+    #agent.learner.model.save_weights("model.h5")
 
     # pr.dump_stats('profil.pstat')

@@ -1,0 +1,10 @@
+version: '3'
+services:
+  agent:
+    build: .
+    #volumes:
+      #- .:/app
+      #- ./logs:/app/logs
+    ports:
+      - 0.0.0.0:6006:6006
+    command: bash -c "tensorboard --logdir=logs --bind_all & python main.py"

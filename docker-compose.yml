@@ -2,9 +2,17 @@ version: '3'
 services:
   agent:
     build: .
-    #volumes:
-      #- .:/app
-      #- ./logs:/app/logs
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
+    #ports:
+      #- 0.0.0.0:6006:6006
+    command: python main.py
+  board:
+    image: tensorflow/tensorflow:latest-py3
+    volumes:
+      - ./logs:/logs
     ports:
       - 0.0.0.0:6006:6006
-    command: bash -c "tensorboard --logdir=logs --bind_all >& /dev/null  & python main.py"
+    command: tensorboard --logdir=logs --bind_all
+
