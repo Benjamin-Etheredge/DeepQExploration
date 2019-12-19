@@ -76,9 +76,19 @@ class Agent:
         self.steps_per_game_scorer = Scores(100)
         self.early_stopping = early_stopping
         if verbose >= 1:
-            log_dir = f"logs/agent_{learner.name}" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            log_dir = f"logs/agent_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
             #self.tensorboard_writer = tf.summary.create_file_writer(log_dir)
             self.tensorboard_writer = tf.summary.FileWriter(log_dir)
+            tensorboard = keras.callbacks.TensorBoard(
+                log_dir=log_dir,
+                histogram_freq=0,
+                batch_size=sample_size,
+                write_graph=True,
+                write_grads=True
+            )
+            tensorboard.set_model(self.learner.model)
+            #self.tensorboard_writer.add_graph(self.learner.model)
+            #self.tensorboard_writer.add_graph()
         #self.tensorboard_writer.set_as_default()
 
         # Easily Adjusted hyperparameters
@@ -104,7 +114,7 @@ class Agent:
         # TQDM Status Monitors setup
 
         # tf.summary.record_if(verbose > 0) # TODO learn more about this function
-        status_bars_disabled = verbose == 0
+        status_bars_disabled = verbose < 2
 
         meter_bar_format_elapsed = "{desc}: {n_fmt} [Elapsed: {elapsed}, {rate_fmt}]"
         meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
@@ -395,7 +405,7 @@ class Agent:
         current_time = timer()
         iteration_time = current_time
         self.log()
-        if verbose > 1:
+        if verbose > 3:
             self.render_game()
 
     def load_model(self, file_name):
