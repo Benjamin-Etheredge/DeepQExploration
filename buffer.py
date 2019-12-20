@@ -1,40 +1,55 @@
 import numpy as np
 import random
 import collections
+import sys
 
 
 #TODO implement priority replay buffer
 
 class Experience:
+    MEMORY_SIZE = 0
     def __init__(self, state, action, next_state, reward, is_done):
-        self.data = [state, action, next_state, reward, is_done]
-        self.__state = np.array(state)
-        self.__action = action
-        self.__nextState = np.array(next_state)
+        #self.data = [state, action, next_state, reward, is_done]
+        self._state = np.squeeze(np.array(state))
+        #if len(self.__state.shape) > 1:
+            #self.__state = self.__state.flatten()
+        self._action = action
+        self._next_state = np.squeeze(np.array(next_state))
+        #if len(self.__nextState.shape) > 1:
+            #self.__nextState = self.__nextState.flatten()
         self.__reward = reward
         self.__isDone = is_done
+        if Experience.MEMORY_SIZE == 0:
+            Experience.MEMORY_SIZE = ((self._state.size * self._state.itemsize) +
+                                      (self._next_state.size * self._next_state.itemsize) +
+                                      sys.getsizeof(self._action) + sys.getsizeof(self.__reward) +
+                                      sys.getsizeof(self.__isDone)) / 1024. / 1024. / 1024.
 
-    def __repr__(self):
-        return self.data
+    #def __repr__(self):
+        #return self.data
 
-    def __getitem__(self, item):
-        return self.data[item]
+    #def __getitem__(self, item):
+        #return self.data[item]
 
-    def __setitem__(self, key, value):
-        self.data[key] = value
-        return value
+    #def __setitem__(self, key, value):
+        #self.data[key] = value
+        #return value
+
+    @staticmethod
+    def size():
+        return Experience.MEMORY_SIZE
 
     @property
     def state(self):
-        return self.__state
+        return self._state
 
     @property
     def action(self):
-        return self.__action
+        return self._action
 
     @property
-    def nextState(self):
-        return self.__nextState
+    def next_state(self):
+        return self._next_state
 
     @property
     def reward(self):
@@ -44,12 +59,40 @@ class Experience:
     def isDone(self):
         return self.__isDone
 
+class AtariExperience(Experience):
+
+    def __init__(self, state, action, next_state, reward, is_done):
+        Experience.__init__(self, np.array(state, dtype=np.uint8), action, np.array(next_state[-1], dtype=np.uint8), reward, is_done)
+
+    @property
+    def next_state(self):
+        #temp =  self._state[1:, :, :]
+        #temp2 =  self._state[1:]
+        #next =  self._state[1:] + self._next_state
+        #next3 =  np.vstack([self._state[1:], self._next_state[np.newaxis, :, :]])
+        #next2 =  np.hstack([self._state[1:], self._next_state[np.newaxis, :, :]])
+        #return next3
+        return np.vstack([self._state[1:], self._next_state[np.newaxis, :, :]])
+
+    #@staticmethod
+    #def gray_scale(x):
+        #x = x[::2, ::2]
+        #gray = np.array((0.21 * x[:, :, :1]) + (0.72 * x[:, :, 1:2]) + (0.07 * x[:, :, -1:]), dtype=np.uint8)
+        #return gray
+
+    @staticmethod
+    def gray_scale(img):
+        img = img[::2, ::2]
+        return np.mean(img, axis=2).astype(np.uint8) # TODO reduce 3 -> 2
+        #return temp[:, :, np.newaxis]
+        #return img[:, :, 1]
+
 
 class ReplayBuffer:
 
     def __init__(self,
                  max_length: int = 100000,
-                 start_length: int =None,
+                 start_length: int = None,
                  buffer: list = None):
         """
         Constructor for Default replay buffer
@@ -65,6 +108,7 @@ class ReplayBuffer:
         self.start_length = start_length
 
         if buffer is None:
+            # TODO deque may be slow for sampling
             buffer = collections.deque([], self.max_length)
             #buffer = []
         self.buffer = buffer
@@ -78,6 +122,10 @@ class ReplayBuffer:
     def numberOfExperiences(self):
         # TODO optimize with caching/ check for modifying
         return len(self.buffer)
+
+    def size(self):
+        size = self.numberOfExperiences * Experience.MEMORY_SIZE
+        return size
 
     def __setitem__(self, key, value):
         self.buffer[key] = value
@@ -94,7 +142,7 @@ class ReplayBuffer:
         pass
 
     def is_full(self):
-        return self.numberOfExperiences > self.max_length
+        return self.size() > 42 or self.numberOfExperiences > self.max_length
 
     def is_ready(self):
         return self.numberOfExperiences >= self.start_length
@@ -111,7 +159,7 @@ class ReplayBuffer:
 
     @property
     def next_states(self):
-        return np.array([item.nextState for item in self.buffer])
+        return np.array([item.next_state for item in self.buffer])
 
     @property
     def rewards(self):
