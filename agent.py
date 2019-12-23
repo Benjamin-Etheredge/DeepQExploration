@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 from buffer import *
 from copy import deepcopy
 from tqdm import tqdm
+import sys
 
+from collections import deque
 from scores import *
 
 from timeit import default_timer as timer
@@ -16,8 +18,8 @@ from multiprocessing import Process, Queue
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 import tensorflow.compat.v1 as tf
 
@@ -25,7 +27,6 @@ import tensorflow.compat.v1 as tf
 #kI
 
 #tf.compat.v1.disable_eager_execution()  # disable eager for performance boost
-tf.disable_eager_execution()  # disable eager for performance boost
 #tf.compat.v1.disable_eager_execution()  # disable eager for performance boost
 # 3tf.enable_resource_variables()
 # tf.compat.v2.dis
@@ -37,6 +38,9 @@ tf.disable_eager_execution()  # disable eager for performance boost
 
 from datetime import datetime
 
+#TODO process every 4th move
+def dummy_process(data):
+    return data
 
 class Agent:
     DECAY_TYPE_LINEAR = 'linear'
@@ -54,12 +58,19 @@ class Agent:
                  # decay_type: str = Agent.DECAY_TYPE_LINEAR,
                  early_stopping: bool = True,
                  verbose=0,
-                 seed=None):
+                 seed=None,
+                 experience_creator=Experience,
+                 observation_processor=dummy_process,
+                 window=4,
+                 target_network_interval=None):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
             seed = np.random.randint(0, 99999999)
         self.np_random_state = np.random.RandomState(seed)
+        self.experience_creator = experience_creator
+        self.observation_processor = observation_processor
+        self.window = window
 
         self.learner = learner
         self.replay_buffer = replay_buffer
@@ -92,10 +103,17 @@ class Agent:
         #self.tensorboard_writer.set_as_default()
 
         # Easily Adjusted hyperparameters
+        if reward_threshold is None:
+            reward_threshold = sys.maxsize
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
         self.max_episodes = max_episodes
-        self.target_network_updating_interval = int(self.max_episode_steps * 0.5)
+        self.on_policy_check_interval = min(max_episodes//10, 1000)
+
+        if target_network_interval is None:
+            self.target_network_updating_interval = int(self.max_episode_steps * 0.5)
+        else:
+            self.target_network_updating_interval = target_network_interval
         self.sample_size = sample_size
         self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
         # self.randomChoiceDecayRate = randomChoiceDecayRate
@@ -104,7 +122,7 @@ class Agent:
             random_choice_decay_min = 0.0000000000000001
         if self.decay_type == 'linear':
             self.randomChoiceDecayRate = float(
-                (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .1)))
+                (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episodes)))
         # self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
@@ -120,65 +138,20 @@ class Agent:
         meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
         tracker_fmt = "{desc}: {total_fmt}"
         running_average_fmt = tracker_fmt + "[Goal: " + str(reward_threshold) + "]"
-        self.tqdm_graphs = []
-        self.step_meter = self.create_tdm(desc="Steps", unit="steps", disable=status_bars_disabled,
-                                          bar_format=meter_bar_format_elapsed)
-        self.game_meter = self.create_tdm(total=self.max_episodes, desc="Games", unit="games",
-                                          disable=status_bars_disabled)
-        self.model_update_counter = self.create_tdm(desc="Model Updates", unit="updates", disable=status_bars_disabled,
-                                                    bar_format=meter_bar_format)
-        self.target_update_meter = self.create_tdm(desc="Target Updates", unit="updates", disable=status_bars_disabled,
-                                                   bar_format=meter_bar_format)
-        self.random_monitor = self.create_tdm(total=self.random_action_rate, desc="Current Random Action Rate",
-                                              disable=status_bars_disabled, bar_format=tracker_fmt)
-        self.game_step_monitor = self.create_tdm(desc="Average Steps per game over past 100 games",
-                                                 disable=status_bars_disabled, bar_format=tracker_fmt)
-        self.on_policy_monitor = self.create_tdm(desc="On-Policy Evaluation Score", unit="evals",
-                                                 disable=status_bars_disabled, bar_format=running_average_fmt)
-        self.off_policy_monitor = self.create_tdm(desc="Off-Policy Evaluation Score", unit="evals",
-                                                  disable=status_bars_disabled, bar_format=running_average_fmt)
-        self.variance_monitor = self.create_tdm(desc="Running Variance", unit="evals", disable=status_bars_disabled,
-                                                bar_format=tracker_fmt)
-        self.variance_count_monitor = self.create_tdm(desc="Variance Counts", unit="evals",
-                                                      disable=status_bars_disabled, bar_format=tracker_fmt)
-        self.loss_monitor = self.create_tdm(desc="Running Loss", unit="evals", disable=status_bars_disabled,
-                                            bar_format=tracker_fmt)
-        self.loss_counter = self.create_tdm(desc="Loss Counts", unit="evals", disable=status_bars_disabled,
-                                            bar_format=tracker_fmt)
-
-    def __del__(self):
-        for graph in self.tqdm_graphs:
-            graph.close()
 
     def seed(self):
         seed = self.np_random_state.randint(0, 9999)
         assert(seed >= 0)
         #return np.random.randint(0, 99999)  # seed env with controllable random generator
 
-
-    def create_tdm(self, bar_format=None, total=1, initial=0, desc="", unit="", disable=False, ):
-        # tqdm.bar_format
-        if bar_format is None:  # TODO combine if statement using kwargs
-            # self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ascii=True))
-            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable, ncols=70,
-                                         ascii=True))
-        else:
-            self.tqdm_graphs.append(tqdm(total=total, initial=initial, desc=desc, unit=unit, disable=disable,
-                                         bar_format=bar_format, ncols=70, ascii=True))
-        return self.tqdm_graphs[-1]
-
     def is_done_learning(self):
         average_reward = self.scores.average_reward()
-        self.off_policy_monitor.total = average_reward
         # with self.tensorboard_writer.as_default():
         # tf.summary.scalar("off_policy_average_reward", 0.5, self.iterations)
         # self.tensorboard_writer.flush()
 
         # self.iterations+=1
-        self.off_policy_monitor.update(0)
         variance_of_scores = self.scores.get_variance()
-        self.variance_monitor.total = variance_of_scores
-        self.variance_monitor.update(0)
         return self.scores.get_variance() <= abs(0.01 * self.reward_stopping_threshold)
         # return average_reward >= self.reward_stopping_threshold
 
@@ -218,8 +191,6 @@ class Agent:
             self.random_action_rate = max(self.randomChoiceMinRate,
                                           (self.randomChoiceDecayRate * self.random_action_rate))
         # self.randomChoicePercentage = minRate + (maxRate - minRate) * np.exp(-decayRate * iteration)
-        self.random_monitor.total = self.random_action_rate
-        self.random_monitor.update(0)
 
     def update_learner(self):
         sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
@@ -227,10 +198,6 @@ class Agent:
         # self.learner.update(npSample)
         loss = self.learner.update(sample)
         self.replay_buffer.update(sample_idxs, loss)
-
-        self.model_update_counter.update(1)
-        self.loss_monitor.total = loss
-        self.loss_monitor.update(0)
 
         return loss
 
@@ -263,7 +230,7 @@ class Agent:
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
         self.prepare_buffer()
-        if verbose > 1:
+        if verbose > 3:
             self.score_model(1, verbose=verbose)
 
         game_count = 0
@@ -277,19 +244,16 @@ class Agent:
             #self.verbose_1_check(tf.summary.scalar, "epsilon_rate_per_game", data=self.random_action_rate,
                                  #step=game_count)
             self.verbose_1_check(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
-            self.verbose_1_check(name="buffer_size", data=len(self.replay_buffer), step=game_count)
+            self.verbose_1_check(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
+            buffer_size_in_GBs = self.replay_buffer.size()
+            self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
             #summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
 
-            self.update_target_model()  # updating between games seems to perform significantly better than every C steps
+            #self.update_target_model()  # updating between games seems to perform significantly better than every C steps
             game_count += 1
-            self.game_meter.update(1)
             average_reward = self.scores.average_reward()
-            self.off_policy_monitor.total = average_reward
-            self.off_policy_monitor.update(0)
             variance_of_scores = self.scores.get_variance()
 
-            self.variance_monitor.total = variance_of_scores
-            self.variance_monitor.update(0)
             if self.replay_buffer.is_ready() and variance_of_scores < np.abs(0.01 * self.reward_stopping_threshold):
                 variance_counter += 1
                 if variance_counter > 100:
@@ -297,29 +261,27 @@ class Agent:
             else:
                 variance_counter = 0
 
-            self.variance_count_monitor.total = convergence_counter
-            self.variance_count_monitor.update(0)
-
-            if game_count % 25 == 0:
+            if game_count % self.on_policy_check_interval == 0:
                 # mini_score = self.score_model(1)
                 mini_score = self.score_model(1, self.replay_buffer, verbose=verbose)
                 self.verbose_1_check(name="intermediate_on_policy_score", data=mini_score, step=game_count)
-                self.on_policy_monitor.total = mini_score
-                self.on_policy_monitor.update(0)
                 # if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
                 if self.early_stopping and mini_score >= self.reward_stopping_threshold:
                     actual_score = self.score_model(100)
                     self.verbose_1_check(name="on_policy_score", data=actual_score, step=game_count)
                     #self.verbose_1_check(tf.summary.scalar, "on_policy_score", data=actual_score, step=game_count)
                     # actual_score = self.score_model(100, self.replay_buffer)
-                    self.on_policy_monitor.total = actual_score
-                    self.on_policy_monitor.update(0)
                     if actual_score >= self.reward_stopping_threshold * (np.abs(self.reward_stopping_threshold) * 0.1):
                         return total_steps
 
             # Start a new game
             #self.env.seed(self.seed())
-            step = self.env.reset()
+            # TODO extract process to method
+            step = self.observation_processor(self.env.reset())
+            #step_buffer = np.moveaxis(np.array([step for _ in range(self.window + 1)]), 0, -1)
+            step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
+            np_step_buffer = np.stack(step_buffer, axis=2)
+            self.replay_buffer.prep(step)
             is_done = False
             total_reward = 0
             game_steps = 0
@@ -329,17 +291,20 @@ class Agent:
                 # tf.summary.scalar("epsilon_rate_per_step", data=self.random_action_rate, step=total_steps)
                 if verbose > 2:
                     self.env.render()
-                action_choice = self.getNextAction(step)
+                action_choice = self.getNextAction(np_step_buffer[:, :, 1:])
                 #self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
-                self.step_meter.update(1)
                 next_step, reward, is_done, _ = self.env.step(action_choice)
+                next_step = self.observation_processor(next_step)
+                #step_buffer = np.concatenate((np_step_buffer[:, :, 1:], step[:, :, np.newaxis]), axis=2)
+                step_buffer.append(next_step)
+                np_step_buffer = np.stack(step_buffer, axis=2)
                 total_reward += reward
                 # TODO add prioirity
-                experience = Experience(step, action_choice, next_step, reward, is_done)
+                experience = self.experience_creator(np_step_buffer[:, :, :-1], action_choice, np_step_buffer[:, :, 1:], reward, is_done)
                 self.replay_buffer.append(experience)
-                step = next_step
+                #step = next_step
 
                 if self.replay_buffer.is_ready():
                     loss = self.update_learner()
@@ -360,45 +325,28 @@ class Agent:
                     # self.decayRandomChoicePercentage()
 
                     if self.shouldUpdateLearnerTargetModel(total_steps):
-                        # self.update_target_model()
-                        pass
+                        self.verbose_1_check(name="target_model_updates", data=int(total_steps/self.target_network_updating_interval), step=game_count)
+                        self.update_target_model()
 
-                if verbose > 0 and self.should_log(total_steps):
+                if verbose > 2 and self.should_log(total_steps):
                     self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
-            #print(moves_per_second)
             self.verbose_1_check(name="move_per_second_per_game", data=moves_per_second, step=game_count)
-            #tf.summary.scalar("move_per_second_per_game", data=moves_per_second, step=game_count)
             self.verbose_1_check(name="off_policy_game_score", data=total_reward, step=game_count)
-            #self.verbose_1_check(tf.summary.scalar, "off_policy_game_score", data=total_reward, step=game_count)
             self.scores.append(total_reward)
-            #self.verbose_1_check(tf.summary.scalar, "off_policy_game_score", data=total_reward, step=game_count)
             self.steps_per_game_scorer.append(game_steps)
             self.verbose_1_check(name="steps_per_game", data=game_steps, step=game_count)
-            #self.verbose_1_check(tf.summary.scalar, "steps_per_game", data=game_steps, step=game_count)
-            # tf.summary.scalar("aversteps_per_game", data=game_steps, step=game_count)
-            self.game_step_monitor.total = self.steps_per_game_scorer.average_reward()
-            self.game_step_monitor.total = self.steps_per_game_scorer.average_reward()
-            self.game_step_monitor.update(0)
             self.decayRandomChoicePercentage()
-            #tf.compat.v1.summary.all_v2_summary_ops()
-            #self.tensorboard_writer.jk
-            #self.tensorboard_writer.flush()
-            #self.tensorboard_writer.close()
-            # t
-            # self.tensorboard_writer.
 
         # self.plot()
-
         # self.score_model()
         assert total_steps > 0
         return total_steps
 
     def update_target_model(self):
-        self.target_update_meter.update(1)
         self.learner.update_target_model()
 
     def log_play(self, iteration, iteration_time, start_time, step_limit, total_steps, verbose):
@@ -415,26 +363,39 @@ class Agent:
     def save_model(self, file_name):
         pass
 
+    # TODO use void learner to combine methods
     def play_game(self, buffer=None, verbose: int = 0):
         total_reward = 0
         done = False
         #self.scoring_env.seed(self.seed())
-        step = self.scoring_env.reset()
-        previous_step = step
+        step = self.observation_processor(self.scoring_env.reset())
+        #step_buffer = deque([step for _ in range(self.window+1)], max_length=self.window+1)
+        step_buffer = deque([step for _ in range(self.window+1)], self.window+1)
+        self.replay_buffer.prep(step)
+        #kjstep_buffer = np.moveaxis(np.array([step for _ in range(self.window+1)]), 0, -1)
+        #step_buffer = deque([], maxlen=self.window)
+        np_step_buffer = np.stack(step_buffer, axis=2)
+        step_count = 0
+
         while not done:
-            if verbose > 1:
+            if verbose > 3:
                 self.scoring_env.render()
-            action_choice = self.learner.get_next_action(step)
+            action_choice = self.getNextAction(np_step_buffer[:, :, 1:])
+            #action_choice = self.learner.get_next_action(np_step_buffer[:, :, 1:])
+            # TODO build better policy evaluator
             step, reward, done, _ = self.scoring_env.step(action_choice)
+            step_count += 1
+            step = self.observation_processor(step)
+            step_buffer.append(step)
+            #step_buffer = np.roll(step_buffer, 1, axis=2)
+            #step_buffer[:, :, -1] = step
+            #step_buffer[-1] = np.concatenate((step_buffer[:, :, 1:], step[:, :, np.newaxis]), axis=2)
+            #step_buffer.append(step)
             if buffer is not None:
-                experience = Experience(previous_step, action_choice, step, reward, done)
+                experience = self.experience_creator(np_step_buffer[:, :, :-1], action_choice, np_step_buffer[:, :, 1:], reward, done)
                 self.replay_buffer.append(experience)
-                previous_step = step
             total_reward += reward
         return total_reward
-
-    def play_game_worker(self):
-        pass
 
     def score_model(self, games=150, buffer=None, verbose: int = 0):
         """
@@ -471,18 +432,3 @@ class Agent:
     def plot(self, game_name=None, learner_name=None):
         self.scores.plotA(game_name, learner_name)
         self.scores.plotB(game_name, learner_name)
-
-
-def play_game_parallel(model, env, shared):
-    total_reward = 0
-    done = False
-    step = env.reset()
-    while not done:
-        action_choice = model.get_next_action(step)
-        step, reward, done, _ = env.step(action_choice)
-        total_reward += reward
-    shared.append(total_reward)
-
-
-def do_nothing():
-    pass

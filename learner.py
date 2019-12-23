@@ -1,12 +1,14 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import numpy as np
 import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()  # disable eager for performance boost
 tf.set_random_seed(4)
 from tensorflow.compat.v1 import keras
 from buffer import *
 #import  tensorflow.compat.v2.k
+from copy import deepcopy
 
 
 ##writer = tf.summary.FileWriter("log")
@@ -14,6 +16,9 @@ from buffer import *
 #config = tf.ConfigProto()
 # TODO investigate making tf dataset to get boost from eager
 #config.gpu_options.allow_growth = True
+tf_config=tf.ConfigProto()
+tf_config.gpu_options.allow_growth=True
+sess = tf.Session(config=tf_config)
 #train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 #train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy('train_accuracy')
 #test_loss = tf.keras.metrics.Mean('test_loss', dtype=tf.float32)
@@ -42,14 +47,14 @@ class DeepQ:
                     nodes_per_layer: int = 128,  # TODO difference between 128 vs 256
                     layer_count: int = 1,
                     gamma: float = 0.99,
-                    learning_rate: float = 0.001):
+                    learning_rate: float = 0.001, *args, **kwargs):
         self.gamma = gamma
         self.model = self.build_model_function(input_dimension, output_dimension,
-                                      nodes_per_layer, layer_count, learning_rate)
+                                      nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
         #tf.summary.
         #self.model.name = "Live_Network"
         self.target_model = self.build_model_function(input_dimension, output_dimension,
-                                             nodes_per_layer, layer_count, learning_rate)
+                                             nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
         #self.target_model.name = "Target_Network"
         #self.tensorboard_callback.set_model(self.model)
         self.update_target_model()
@@ -65,7 +70,17 @@ class DeepQ:
         pass
 
     def get_next_action(self, state):
-        action_values = self.model.predict_on_batch(np.atleast_2d(state))[0]
+        # TODO this is terrible.... refactor. I just want it to run right now
+        #state = np.moveaxis(np.array(state), 0, -1)
+        if len(state.shape) > 1:
+            #state = AtariExperience.gray_scale(state)
+
+            state = state[np.newaxis, :, :, :]
+
+        #print(f"get_next_action state.shape: {np.array(state).shape}")
+        action_values = self.model.predict_on_batch(state)[0]
+        #action_values = self.model.predict_on_batch(np.atleast_2d(state))[0]
+        #action_values = self.model.predict_classes([state])[0]
         # action_values = self.model.predict(np.atleast_2d(state))[0]
         return np.argmax(action_values)
 
@@ -78,15 +93,20 @@ class DeepQ:
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
+        states2 = sample.states
         states = np.array(sample.states)
-        next_states = np.array(sample.next_states)
+        #if len(states.shape) > 1:
+            #states = states[:.flatten()
+        next_states = np.stack(sample.next_states, axis=2)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
-        current_all_action_values = np.array(self.model.predict_on_batch(states)) # explictly make array due to TF eager
+        current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
         current_all_prime_action_values = self.model.predict_on_batch(next_states)
         target_all_prime_action_values = self.target_model.predict_on_batch(next_states)
 
+        #test = deepcopy(current_all_action_values)
+        #test[np.logical_not(sample.is_dones)] = np.app
         #for idx in range(len(samples)):
         #for idx, (action, reward, is_done) in enumerate(zip(sample.actions, sample.rewards, sample.isDones)):
         idx = 0
@@ -189,6 +209,12 @@ class DeepQFactory:
                      q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
+    @staticmethod
+    def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
+        return DeepQ(name="Atari_Clipped_Double_Duel_DeepQ",
+                     q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.vanilla_conv_build_model, *args, **kwargs)
+
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
@@ -247,6 +273,44 @@ class DeepQFactory:
                       #loss='mse')
         # metrics=['accuracy'])
         #keras.utils.plot_model(model, to_file=f"duel_model.png")
+        return model
+
+    # Different Model Construction Methods.
+    @staticmethod
+    def vanilla_conv_build_model(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
+                                 conv_layer_count, conv_nodes, kernel_size, conv_stride, conv_increase_factor):
+        #model = keras.models.Sequential()
+        #model.add()
+        print(input_dimensions)
+        #input_dimensions = list(input_dimensions) + [1]
+        #tprint(input_dimensions)
+        #input_dimensions = input_dimensions[0], input_dimensions[1]/2, input_dimensions[2]/2
+        input_dimensions = (int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2))), input_dimensions[2]
+        inputs = keras.Input(shape=tuple(input_dimensions))  # we'll be using the past 4 frames
+        hidden_layer = keras.layers.Lambda(lambda x: x / 255.0)(inputs)
+        pool_size = 4
+        for _ in range(conv_layer_count):
+            hidden_layer = keras.layers.Conv2D(filters=conv_nodes,
+                                               kernel_size=kernel_size,
+                                               strides=conv_stride,
+                                               activation='relu', data_format='channels_last')(hidden_layer)
+            #activation = 'relu', data_format = 'channels_first')(hidden_layer)
+            hidden_layer = keras.layers.MaxPool2D(pool_size=(pool_size,pool_size))(hidden_layer)
+            conv_nodes *= conv_increase_factor
+            pool_size = int(max(1, pool_size / 2))
+            kernel_size = int(max(3, kernel_size / 2))
+        hidden_layer = keras.layers.Flatten()(hidden_layer)
+
+        for _ in range(hidden_layer_count):
+            hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
+            #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
+
+        predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
+        model = keras.Model(inputs=inputs, outputs=predictions)
+        #TODO switch back optimizers and huber
+        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
 

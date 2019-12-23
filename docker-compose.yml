@@ -1,18 +1,22 @@
 version: '3'
 services:
   agent:
-    build: .
-    volumes:
-      - .:/app
-      - ./logs:/app/logs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #volumes:
+      #- .:/app
+      #- ./logs:/app/logs
     #ports:
       #- 0.0.0.0:6006:6006
-    command: python main.py
+    command: python -m pytest test_agent.py::TestAgent::test_SpaceInvaders_v0
+    #command: ls && sleep 100
   board:
     image: tensorflow/tensorflow:latest-py3
     volumes:
       - ./logs:/logs
+      - ./logs:/app/logs
     ports:
       - 0.0.0.0:6006:6006
-    command: tensorboard --logdir=logs --bind_all
+    command: tensorboard --logdir=/logs --bind_all
 

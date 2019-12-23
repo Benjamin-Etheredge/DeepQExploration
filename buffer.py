@@ -10,18 +10,19 @@ class Experience:
     MEMORY_SIZE = 0
     def __init__(self, state, action, next_state, reward, is_done):
         #self.data = [state, action, next_state, reward, is_done]
-        self._state = np.squeeze(np.array(state))
+        self._state = state
+        #print(self._state.shape)
         #if len(self.__state.shape) > 1:
             #self.__state = self.__state.flatten()
         self._action = action
-        self._next_state = np.squeeze(np.array(next_state))
+        self._next_state = next_state
         #if len(self.__nextState.shape) > 1:
             #self.__nextState = self.__nextState.flatten()
         self.__reward = reward
         self.__isDone = is_done
         if Experience.MEMORY_SIZE == 0:
             Experience.MEMORY_SIZE = ((self._state.size * self._state.itemsize) +
-                                      (self._next_state.size * self._next_state.itemsize) +
+                                      #(self._next_state.size * self._next_state.itemsize) +
                                       sys.getsizeof(self._action) + sys.getsizeof(self.__reward) +
                                       sys.getsizeof(self.__isDone)) / 1024. / 1024. / 1024.
 
@@ -35,9 +36,9 @@ class Experience:
         #self.data[key] = value
         #return value
 
-    @staticmethod
-    def size():
-        return Experience.MEMORY_SIZE
+    @classmethod
+    def size(cls):
+        return cls.MEMORY_SIZE
 
     @property
     def state(self):
@@ -62,30 +63,24 @@ class Experience:
 class AtariExperience(Experience):
 
     def __init__(self, state, action, next_state, reward, is_done):
-        Experience.__init__(self, np.array(state, dtype=np.uint8), action, np.array(next_state[-1], dtype=np.uint8), reward, is_done)
+        Experience.__init__(self,
+                            np.array(np.concatenate((state, next_state[:, :, -1:]), axis=2), dtype=np.uint8),
+                            action, None, reward, is_done)
+
+    @property
+    def state(self):
+        temp = self._state[:, :, :-1]
+        return temp
 
     @property
     def next_state(self):
-        #temp =  self._state[1:, :, :]
-        #temp2 =  self._state[1:]
-        #next =  self._state[1:] + self._next_state
-        #next3 =  np.vstack([self._state[1:], self._next_state[np.newaxis, :, :]])
-        #next2 =  np.hstack([self._state[1:], self._next_state[np.newaxis, :, :]])
-        #return next3
-        return np.vstack([self._state[1:], self._next_state[np.newaxis, :, :]])
-
-    #@staticmethod
-    #def gray_scale(x):
-        #x = x[::2, ::2]
-        #gray = np.array((0.21 * x[:, :, :1]) + (0.72 * x[:, :, 1:2]) + (0.07 * x[:, :, -1:]), dtype=np.uint8)
-        #return gray
+        temp = self._state[:, :, 1:]
+        return temp
 
     @staticmethod
     def gray_scale(img):
         img = img[::2, ::2]
-        return np.mean(img, axis=2).astype(np.uint8) # TODO reduce 3 -> 2
-        #return temp[:, :, np.newaxis]
-        #return img[:, :, 1]
+        return np.mean(img, axis=2).astype(np.uint8)  # TODO reduce 3 -> 2
 
 
 class ReplayBuffer:
@@ -127,18 +122,13 @@ class ReplayBuffer:
         size = self.numberOfExperiences * Experience.MEMORY_SIZE
         return size
 
-    def __setitem__(self, key, value):
-        self.buffer[key] = value
-        return self.buffer[key]
-
-    # def __getitem__(self, item):
-    # return self.buffer[item]
-
     def __len__(self):
         return len(self.buffer)
 
     def dequeue(self):
-        self.buffer.popleft()
+        pass
+
+    def prep(self, first_state):
         pass
 
     def is_full(self):
@@ -149,17 +139,15 @@ class ReplayBuffer:
 
     @property
     def states(self):
-        return np.array([item.state for item in self.buffer])
+        return [item.state for item in self.buffer]
 
     @property
     def actions(self):
         return [item.action for item in self.buffer]
-        #for item in self.buffer:
-            #yield item.action
 
     @property
     def next_states(self):
-        return np.array([item.next_state for item in self.buffer])
+        return [item.next_state for item in self.buffer]
 
     @property
     def rewards(self):
@@ -168,16 +156,13 @@ class ReplayBuffer:
 
     @property
     def is_dones(self):
-        #return [item.isDone for item in self.buffer]
         for item in self.buffer:
             yield item.isDone
 
     @property
     def training_items(self):
-        # self.data[1] = [state, action, next_state, reward, is_done]
-        #return self.data[1], self.data[3], self.data[4]
         for item in self.buffer:
-            yield (item.action, item.reward, item.isDone)
+            yield item.action, item.reward, item.isDone
 
     def append(self, experience):
         if self.is_full():
@@ -195,7 +180,7 @@ class ReplayBuffer:
         samples = [self.buffer[idx] for idx in sample_idxs]
         return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
 
-    def update(self, indexs, loss):
+    def update(self, indexes, loss):
         pass
 
     def log(self):
@@ -214,3 +199,66 @@ class ReplayBuffer:
                 replace = random.randint(0, numberOfSamples - 1)
                 sample[replace] = experience
         return sample
+
+class AtariBuffer(ReplayBuffer):
+    _all_states = None
+    def __init__(self, max_length: int = 100000,
+                    start_length: int = None,
+                    buffer: list = None):
+        ReplayBuffer.__init__(self, max_length, start_length, buffer)
+        self.offset = 0
+        self.state_idx = 0
+        if AtariBuffer._all_states is None:
+            AtariBuffer._all_states = collections.deque([], max_length*2)
+
+    def append(self, experience):
+        temp = len(AtariBuffer._all_states)
+        AtariBuffer._all_states.append(experience.next_state)
+        temp2= len(AtariBuffer._all_states)
+
+        if temp == temp2:
+            self.offset += 1
+        new_exp = Experience(None, experience.action, self.state_idx, experience.reward, experience.isDone)
+        self.buffer.append(new_exp)
+        self.state_idx += 1
+
+    def size(self):
+        return 0
+
+    @property
+    def states(self):
+        #temp = [self._all_states[item.next_state-4: item.next_state-1] for item in self.buffer]
+        temp =  [[AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state-1)] for item in self.buffer]
+        return temp
+
+    @property
+    def next_states(self):
+        #return [self._allstates[state_idxs] for state_idxs in self._next_states]
+        #return [item.next_state for item in self.buffer]
+        temp =  [[AtariBuffer._all_states[idx-self.offset] for idx in range((item.next_state-3), item.next_state)] for item in self.buffer]
+        return temp
+
+    @property
+    def training_items(self):
+        # self.data[1] = [state, action, next_state, reward, is_done]
+        #return self.data[1], self.data[3], self.data[4]
+        for item in self.buffer:
+            yield (item.action, item.reward, item.isDone)
+
+    def get_samples_from_idxs(idxs):
+        pass
+
+    def randomSample(self, numberOfSamples):
+        # numpy choice is way slower than random.sample
+        #sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
+        sample_idxs = random.sample(range(len(self.buffer)), numberOfSamples)
+        samples = [self.buffer[idx] for idx in sample_idxs]
+        #samples = [Experience(sample. for sample in samples]
+        return sample_idxs, AtariBuffer(numberOfSamples, buffer=samples)
+
+    def prep(self, state):
+        AtariBuffer._all_states.append(state)
+        AtariBuffer._all_states.append(state)
+        AtariBuffer._all_states.append(state)
+        AtariBuffer._all_states.append(state)
+

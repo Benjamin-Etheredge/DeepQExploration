@@ -1,0 +1,10 @@
+version: '3'
+services:
+  agent:
+    image: deepq_gpu:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    #ports:
+      #- 0.0.0.0:6006:6006
+    #command: bash -c "tensorboard --logdir=logs --bind_all & python main.py"
