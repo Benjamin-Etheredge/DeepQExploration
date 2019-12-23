@@ -93,16 +93,16 @@ class DeepQ:
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
-        states2 = sample.states
-        states = np.array(sample.states)
+        #states2 = sample.states
+        states = np.array(list(sample.states))
         #if len(states.shape) > 1:
             #states = states[:.flatten()
-        next_states = np.array(sample.next_states)
-        #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
-        #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
+        next_states = np.array(list(sample.next_states))
+        action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
+        current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
-        current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
-        current_all_prime_action_values = self.model.predict_on_batch(next_states)
+        #current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
+        #current_all_prime_action_values = self.model.predict_on_batch(next_states)
         target_all_prime_action_values = self.target_model.predict_on_batch(next_states)
 
         #test = deepcopy(current_all_action_values)
