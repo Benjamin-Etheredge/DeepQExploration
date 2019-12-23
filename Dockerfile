@@ -7,7 +7,6 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 COPY . /app
 WORKDIR /app
-CMD ["python", "main.py"]
 #ENTRYPOINT python
 # TODO get mounting for project files working
 #RUN pip install -r /app/requirements.txt
