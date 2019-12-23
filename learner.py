@@ -97,7 +97,7 @@ class DeepQ:
         states = np.array(sample.states)
         #if len(states.shape) > 1:
             #states = states[:.flatten()
-        next_states = np.stack(sample.next_states, axis=2)
+        next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 

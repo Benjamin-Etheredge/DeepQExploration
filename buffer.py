@@ -213,7 +213,7 @@ class AtariBuffer(ReplayBuffer):
 
     def append(self, experience):
         temp = len(AtariBuffer._all_states)
-        AtariBuffer._all_states.append(experience.next_state)
+        AtariBuffer._all_states.append(experience.next_state[:, :, -1])
         temp2= len(AtariBuffer._all_states)
 
         if temp == temp2:
@@ -228,20 +228,26 @@ class AtariBuffer(ReplayBuffer):
     @property
     def states(self):
         #temp = [self._all_states[item.next_state-4: item.next_state-1] for item in self.buffer]
-        temp =  [[AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state-1)] for item in self.buffer]
-        return temp
+        #temp = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state-1)], axis=2) for item in self.buffer]
+        #temp = []
+        #for item in self.buffer:
+            #temp2 = []
+            #for idx in range(item.next_state-4, item.next_state-1):
+                #value = AtariBuffer._all_states[idx-self.offset]
+                #temp2.append(value)
+            #temp.append(temp2)
+        temp3 = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state)], axis=2) for item in self.buffer]
+        return temp3
 
     @property
     def next_states(self):
         #return [self._allstates[state_idxs] for state_idxs in self._next_states]
         #return [item.next_state for item in self.buffer]
-        temp =  [[AtariBuffer._all_states[idx-self.offset] for idx in range((item.next_state-3), item.next_state)] for item in self.buffer]
+        temp = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range((item.next_state-3), item.next_state+1)], axis=2) for item in self.buffer]
         return temp
 
     @property
     def training_items(self):
-        # self.data[1] = [state, action, next_state, reward, is_done]
-        #return self.data[1], self.data[3], self.data[4]
         for item in self.buffer:
             yield (item.action, item.reward, item.isDone)
 
