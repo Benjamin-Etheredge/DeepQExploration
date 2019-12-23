@@ -212,7 +212,7 @@ class DeepQFactory:
     @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Atari_Clipped_Double_Duel_DeepQ",
-                     q_prime_function=DeepQFactory.vanilla_q_prime,
+                     q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.vanilla_conv_build_model, *args, **kwargs)
 
     # Different Model Construction Methods.

@@ -82,7 +82,6 @@ class AtariExperience(Experience):
         img = img[::2, ::2]
         return np.mean(img, axis=2).astype(np.uint8)  # TODO reduce 3 -> 2
 
-
 class ReplayBuffer:
 
     def __init__(self,
@@ -126,6 +125,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def dequeue(self):
+        #self.buffer.popleft()
         pass
 
     def prep(self, first_state):
@@ -209,9 +209,15 @@ class AtariBuffer(ReplayBuffer):
         self.offset = 0
         self.state_idx = 0
         if AtariBuffer._all_states is None:
-            AtariBuffer._all_states = collections.deque([], max_length*2)
+            AtariBuffer._all_states = collections.deque([], int(max_length*1.1))
+
+    def clear_cache(self):
+        self._next_state_cache = None
+        self._state_cache = None
+
 
     def append(self, experience):
+        self.clear_cache()
         temp = len(AtariBuffer._all_states)
         AtariBuffer._all_states.append(experience.next_state[:, :, -1])
         temp2= len(AtariBuffer._all_states)
@@ -222,8 +228,9 @@ class AtariBuffer(ReplayBuffer):
         self.buffer.append(new_exp)
         self.state_idx += 1
 
-    def size(self):
-        return 0
+    @classmethod
+    def size(cls):
+        return len(cls._all_states) * Experience.size()
 
     @property
     def states(self):
@@ -236,15 +243,17 @@ class AtariBuffer(ReplayBuffer):
                 #value = AtariBuffer._all_states[idx-self.offset]
                 #temp2.append(value)
             #temp.append(temp2)
-        temp3 = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state)], axis=2) for item in self.buffer]
-        return temp3
+        if self._state_cache is None:
+            self._state_cache = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range(item.next_state-4, item.next_state)], axis=2) for item in self.buffer]
+        return self._state_cache
 
     @property
     def next_states(self):
         #return [self._allstates[state_idxs] for state_idxs in self._next_states]
         #return [item.next_state for item in self.buffer]
-        temp = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range((item.next_state-3), item.next_state+1)], axis=2) for item in self.buffer]
-        return temp
+        if self._next_state_cache is None:
+            self._next_state_cache = [np.stack([AtariBuffer._all_states[idx-self.offset] for idx in range((item.next_state-3), item.next_state+1)], axis=2) for item in self.buffer]
+        return self._next_state_cache
 
     @property
     def training_items(self):
@@ -264,7 +273,11 @@ class AtariBuffer(ReplayBuffer):
 
     def prep(self, state):
         AtariBuffer._all_states.append(state)
+        self.state_idx += 1
         AtariBuffer._all_states.append(state)
+        self.state_idx += 1
         AtariBuffer._all_states.append(state)
+        self.state_idx += 1
         AtariBuffer._all_states.append(state)
+        self.state_idx += 1
 

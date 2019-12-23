@@ -126,7 +126,7 @@ class TestAgent(TestCase):
             environment='SpaceInvaders-v0',
             max_episodes=50000,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
-            sample_size=64,
+            sample_size=32,
             verbose=1,
             experience_creator=AtariExperience,
             layer_count=1,
