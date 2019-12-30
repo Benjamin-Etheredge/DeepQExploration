@@ -2,6 +2,7 @@ import time
 from collections import deque
 from datetime import datetime
 from timeit import default_timer as timer
+from guppy import hpy
 
 import gym
 
@@ -219,6 +220,8 @@ class Agent:
         if verbose > 3:
             self.score_model(1, verbose=verbose)
 
+        h = hpy()
+        h.heap()
         game_count = 0
         total_steps = 0
         start_time = timer()
@@ -231,7 +234,7 @@ class Agent:
             # step=game_count)
             self.verbose_1_check(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             self.verbose_1_check(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
-            buffer_size_in_GBs = self.replay_buffer.size()
+            buffer_size_in_GBs = self.replay_buffer.size
             self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
             # summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
 

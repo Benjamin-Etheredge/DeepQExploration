@@ -3,9 +3,11 @@ import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import keras
 tf.disable_eager_execution()  # disable eager for performance boost
 tf.set_random_seed(4)
-from tensorflow.compat.v1 import keras
+from tensorflow.python.framework.ops import disable_eager_execution
+disable_eager_execution()
 from buffer import *
 #import  tensorflow.compat.v2.k
 from copy import deepcopy
@@ -64,24 +66,16 @@ class DeepQ:
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
-        #self.tensorboard_callback.jkI(self.update_count, {"loss": losses})
 
     def log(self):
         pass
 
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
-        #state = np.moveaxis(np.array(state), 0, -1)
         if len(state.shape) > 1:
-            #state = AtariExperience.gray_scale(state)
-
             state = state[np.newaxis, :, :, :]
 
-        #print(f"get_next_action state.shape: {np.array(state).shape}")
         action_values = self.model.predict_on_batch(state)[0]
-        #action_values = self.model.predict_on_batch(np.atleast_2d(state))[0]
-        #action_values = self.model.predict_classes([state])[0]
-        # action_values = self.model.predict(np.atleast_2d(state))[0]
         return np.argmax(action_values)
 
         # TODO test without target
@@ -93,25 +87,15 @@ class DeepQ:
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
-        #states2 = sample.states
-        states = np.array(list(sample.states))
-        #if len(states.shape) > 1:
-            #states = states[:.flatten()
-        next_states = np.array(list(sample.next_states))
-        action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
-        current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
+        states = np.array(sample.states)
+        next_states = np.array(sample.next_states)
+        #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
+        #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
 
-        #current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
-        #current_all_prime_action_values = self.model.predict_on_batch(next_states)
+        current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
+        current_all_prime_action_values = self.model.predict_on_batch(next_states)
         target_all_prime_action_values = self.target_model.predict_on_batch(next_states)
 
-        #test = deepcopy(current_all_action_values)
-        #test[np.logical_not(sample.is_dones)] = np.app
-        #for idx in range(len(samples)):
-        #for idx, (action, reward, is_done) in enumerate(zip(sample.actions, sample.rewards, sample.isDones)):
-        idx = 0
-        #for action, reward, is_done in zip(sample.actions, sample.rewards, sample.isDones):
-        #for idx, (action, reward, is_done) in enumerate(zip(sample.actions, sample.rewards, sample.isDones)):
         for idx, (action, reward, is_done) in enumerate(sample.training_items):
             q_prime = 0
             if not is_done:
@@ -125,32 +109,8 @@ class DeepQ:
             #idx += 1
 
         # TODO refactor
-
-        ##history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0,
-                       #callbacks=[self.tensorboard_callback])
-        #history = self.model.fit(x=sample.states, y=current_all_action_values, batch_size=len(sample), epochs=1, verbose=0)
-        #losses = history.history['loss']
         losses = self.model.train_on_batch(x=states, y=current_all_action_values)
-        #self.tensorboard_callback.on_batch_end(self.update_count, {"loss": losses}))
-        #self.update_count += 1
-        #tf.summary.scalar('loss', losses)
-
-
-        #merged = tf.summary.merge_all()
-        #summary = sess.run(merged)
-        #sess = K.get_session()
-        #writer.add_summary(summary)
-
-        #train_loss(losses)
-        #losses = self.model.train_on_batch(x=states, y=current_all_action_values, reset_metrics=False)
-        #tf.summary.scalar("loss", 0.5, step=losses)
-        #summary = tf.summary(value=[tf.Summary.Value(tag="loss", simple_value=losses)])
-        #self.summary_writer.add_summary(summary)
-        #3return losses
         return losses
-
-    #def __del__(self):
-        #self.tensorboard_callback.on_train_end(None)
 
 
 class DeepQFactory:

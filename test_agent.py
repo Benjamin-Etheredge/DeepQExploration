@@ -50,6 +50,7 @@ class TestAgent(TestCase):
               sample_size=64,
               verbose=0,
               experience_creator=Experience,
+              buffer_creator=ReplayBuffer,
               data_func=None,
               window=4,
               target_network_interval=None, *args, **kwargs):
@@ -85,7 +86,8 @@ class TestAgent(TestCase):
                             gamma=gamma, *args, **kwargs)
 
         #start_length = min(int(max_episodes/10) * max_episode_steps, 500)
-        start_length = min(int(max_episodes) * max_episode_steps, 200000)
+        #start_length = min(int(max_episodes) * max_episode_steps, 10000000)
+        start_length = 200000
         # TODO account for possible extra space from scoring
         max_possible_step_count = start_length * 5
 
@@ -93,7 +95,7 @@ class TestAgent(TestCase):
             learner=learner,
             scorer=Scores(10),
             sample_size=sample_size,
-            replay_buffer=AtariBuffer(max_length=max_possible_step_count, start_length=start_length),
+            replay_buffer=buffer_creator(max_length=max_possible_step_count, start_length=start_length),
             environment=env,
             reward_threshold=reward_threshold,
             random_choice_decay_min=random_choice_min_rate,
@@ -105,8 +107,8 @@ class TestAgent(TestCase):
             observation_processor=data_func,
             window=window,
             target_network_interval=target_network_interval)
-        step_count = agent.play(4000 * max_episode_steps, verbose=0)
-        score = agent.score_model(100, verbose=0)
+        step_count = agent.play(max_episodes * max_episode_steps, verbose=0)
+        #score = agent.score_model(100, verbose=0)
 
         #self.assertGreaterEqual(score, reward_threshold)
         return score
@@ -124,19 +126,20 @@ class TestAgent(TestCase):
     def test_SpaceInvaders_v0(self):
         self.test_play(
             environment='SpaceInvaders-v0',
-            max_episodes=50000,
+            max_episodes=100000,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
             sample_size=32,
             verbose=1,
             experience_creator=AtariExperience,
             layer_count=1,
+            #buffer_creator=AtariBuffer,
             learning_rate=0.00025,
             random_choice_min_rate=0.1,
-            nodes_per_layer=512,
+            nodes_per_layer=256,
             window=4,
             target_network_interval=10000,
             data_func=AtariExperience.gray_scale,
-            conv_layer_count=2, conv_nodes=32, conv_increase_factor=2, kernel_size=8, conv_stride=2)
+            conv_layer_count=2, conv_nodes=16, conv_increase_factor=2, kernel_size=8, conv_stride=2)
 
 
     def test_play_all(self):
