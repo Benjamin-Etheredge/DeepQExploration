@@ -18,41 +18,12 @@ class VoidBuffer:
 class Experience:
     MEMORY_SIZE = None
 
-    #@profile
     def __init__(self, state, action, next_state, reward, is_done):
-        # self.data = [state, action, next_state, reward, is_done]
         self._state = state
-        # print(self._state.shape)
-        # if len(self.__state.shape) > 1:
-        # self.__state = self.__state.flatten()
         self._action = action
         self._next_state = next_state
-        # if len(self.__nextState.shape) > 1:
-        # self.__nextState = self.__nextState.flatten()
         self._reward = reward
         self._isDone = is_done
-        '''
-        if Experience.MEMORY_SIZE is None:
-            # try:
-            size_1 = self._state.size * self._state.itemsize
-            # except:
-            # size_1 = 0
-            try:
-                size_2 = self._next_state.size * self._state.itemsize
-            except AttributeError:
-                size_2 = 0
-
-            Experience.MEMORY_SIZE = (size_1 + size_2 +
-                                      sys.getsizeof(self._action) + sys.getsizeof(self._reward) +
-                                      sys.getsizeof(self.__isDone)) / 1024. / 1024. / 1024.
-        '''
-
-    '''
-    @classmethod
-    @profile
-    def size(cls):
-        return cls.MEMORY_SIZE
-    '''
 
     @property
     def state(self):
@@ -74,35 +45,14 @@ class Experience:
     def isDone(self):
         return self._isDone
 
-
-class ExperienceLists(Experience):
-
-    @property
-    def state(self):
-        return np.stack(self._state, axis=2)
-
-    @property
-    def next_state(self):
-        return np.stack(self._next_state, axis=2)
-
-
-
-
 class AtariExperience(Experience):
-
-    def __init__(self, state, action, next_state, reward, is_done):
-        Experience.__init__(self, state, action, next_state[:, :, -1], reward, is_done)
-
-    @property
-    def next_state(self):
-        return dstack((self._state[:, :, 1:], self._next_state))
 
     @staticmethod
     def gray_scale(img):
         return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)  # TODO reduce 3 -> 2
 
 
-def clipped_attari(reward, *args, **kwargs):
+def clipped_atari(reward, *args, **kwargs):
     reward = min(1, max(reward, -1))
     return AtariExperience(reward=reward, *args, **kwargs)
 
