@@ -148,16 +148,16 @@ class Agent:
         return iteration % self.target_network_updating_interval == 0
 
     # TODO why should this be a property?
-    def shouldDecayRandomChoiceRate(self):
+    def should_decay_epsilon(self):
         return self.replay_buffer.is_ready()
 
-    def getNextAction(self, state, random_choice_rate=None):
+    def get_next_action(self, state, random_choice_rate=None):
         if self.should_select_random_action():
             return self.env.action_space.sample()
         else:
             return self.learner.get_next_action(state)
 
-    def decayRandomChoicePercentage(self):
+    def decay_epsilon(self):
         # TODO set decay operator
         if self.decay_type == 'linear':
             self.random_action_rate = max(self.randomChoiceMinRate,
@@ -221,7 +221,7 @@ class Agent:
             while not is_done:
                 if verbose > 2:
                     self.env.render()
-                action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
+                action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
@@ -263,7 +263,7 @@ class Agent:
             #self.scores.append(total_reward)
             #self.steps_per_game_scorer.append(game_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
-            self.decayRandomChoicePercentage()
+            self.decay_epsilon()
             self.tensorboard_log(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
@@ -316,7 +316,7 @@ class Agent:
                 self.scoring_env.render()
             # TODO convert step_buffer to longer form and make it my window....
             # TODO but it probably won't make a huge difference since the np.arrays take way more space            action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
-            action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
+            action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
             # TODO build better policy evaluator
             step, reward, done, _ = self.scoring_env.step(action_choice)
             step_count += 1
