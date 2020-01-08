@@ -1,12 +1,9 @@
-import collections
 from collections import deque
 import random
-import sys
-from PIL import Image
 
 import numpy as np
 
-from numpy import dstack, mean, stack, array
+from numpy import mean, array
 
 
 # TODO implement priority replay buffer
