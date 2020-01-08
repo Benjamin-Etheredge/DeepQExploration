@@ -2,7 +2,24 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 
-class Scores:
+class VoidScores:
+    def __init__(self):
+        pass
+
+    def append(self, reward):
+        pass
+
+    def reset(self):
+        pass
+
+    def average_reward(self):
+        pass
+
+    def get_variance(self):
+        pass
+
+
+class Scores(VoidScores):
 
     def __init__(self, score_count: int = 200):
         self.numberOfRewardsToAverageOver = score_count

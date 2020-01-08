@@ -1,17 +1,22 @@
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+#os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
+
 import numpy as np
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import keras
+#import tensorflow.compat.v1.keras.backend as K
+#dtype = 'float16'
+#K.set_floatx(dtype)
+#K.set_epsilon(1e-4)
+
 tf.disable_eager_execution()  # disable eager for performance boost
 tf.set_random_seed(4)
 from tensorflow.python.framework.ops import disable_eager_execution
 disable_eager_execution()
 from buffer import *
 #import  tensorflow.compat.v2.k
-from copy import deepcopy
-
 
 ##writer = tf.summary.FileWriter("log")
 #writer = tf.summary.create_file_writer("logs")
@@ -27,6 +32,7 @@ sess = tf.Session(config=tf_config)
 
 
 class DeepQ:
+    #@profile
     def __init__(self,
                  name,
                  q_prime_function,
@@ -45,6 +51,7 @@ class DeepQ:
         #self.update_count = 0
         #self.summary_writer = tf.summary.create_file_writer(log_dir)
 
+    #@profile
     def build_model(self, input_dimension, output_dimension,
                     nodes_per_layer: int = 128,  # TODO difference between 128 vs 256
                     layer_count: int = 1,
@@ -61,15 +68,19 @@ class DeepQ:
         #self.tensorboard_callback.set_model(self.model)
         self.update_target_model()
 
+    #@profile
     def get_name(self):
         return self.name
 
+    #@profile
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
+    #@profile
     def log(self):
         pass
 
+    #@profile
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
         if len(state.shape) > 1:
@@ -84,10 +95,16 @@ class DeepQ:
         # target_prime_action_values = self.targetModel.predict(statePrimes)
         # return target_prime_action_values
 
+    #@profile
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
         states = np.array(sample.states)
+        #from PIL import Image
+        #im = Image.fromarray(states[0, :, :, :3])
+        #im.save("img.jpeg")
+        #im = Image.fromarray(states[4, :, :, :3])
+        #im.save("img2.jpeg")
         next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
@@ -172,10 +189,15 @@ class DeepQFactory:
     @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Atari_Clipped_Double_Duel_DeepQ",
-                     q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+                     q_prime_function=DeepQFactory.vanilla_q_prime,
+                     #q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.vanilla_conv_build_model, *args, **kwargs)
 
+    #@static create_atari()
+
     # Different Model Construction Methods.
+    #from tensorflow.compat.v1.keras import Input, Model
+    #from tensorflow.compat.v1.keras.layers import Dense,
     @staticmethod
     def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
         #model = keras.models.Sequential()
@@ -188,7 +210,8 @@ class DeepQFactory:
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
         model = keras.Model(inputs=inputs, outputs=predictions)
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
         #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
@@ -238,30 +261,31 @@ class DeepQFactory:
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_conv_build_model(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
-                                 conv_layer_count, conv_nodes, kernel_size, conv_stride, conv_increase_factor):
+                                 conv_nodes, kernel_size, conv_stride):
         #model = keras.models.Sequential()
         #model.add()
-        print(input_dimensions)
         #input_dimensions = list(input_dimensions) + [1]
         #tprint(input_dimensions)
         #input_dimensions = input_dimensions[0], input_dimensions[1]/2, input_dimensions[2]/2
         input_dimensions = (int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2))), input_dimensions[2]
         inputs = keras.Input(shape=tuple(input_dimensions))  # we'll be using the past 4 frames
         hidden_layer = keras.layers.Lambda(lambda x: x / 255.0)(inputs)
-        pool_size = 4
-        for _ in range(conv_layer_count):
-            hidden_layer = keras.layers.Conv2D(filters=conv_nodes,
-                                               kernel_size=kernel_size,
-                                               strides=conv_stride,
+        #hidden_layer = inputs
+        '''
+        for conv_count, kernel, stride in zip(conv_nodes, kernel_size, conv_stride):
+            hidden_layer = keras.layers.Conv2D(filters=conv_count,
+                                               kernel_size=kernel,
+                                               strides=stride,
                                                activation='relu', data_format='channels_last')(hidden_layer)
             #activation = 'relu', data_format = 'channels_first')(hidden_layer)
-            hidden_layer = keras.layers.MaxPool2D(pool_size=(pool_size,pool_size))(hidden_layer)
-            conv_nodes *= conv_increase_factor
-            pool_size = int(max(1, pool_size / 2))
-            kernel_size = int(max(3, kernel_size / 2))
+            #hidden_layer = keras.layers.MaxPool2D(pool_size=(pool_size,pool_size))(hidden_layer)
+            #conv_nodes *= conv_increase_factor
+            #pool_size = int(max(1, pool_size / 2))
+            #kernel_size = int(max(3, kernel_size / 2))
+        '''
         hidden_layer = keras.layers.Flatten()(hidden_layer)
 
-        for _ in range(hidden_layer_count):
+        for _ in range(hidden_layer_count+1):
             hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
             #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
 
@@ -269,7 +293,8 @@ class DeepQFactory:
         model = keras.Model(inputs=inputs, outputs=predictions)
         #TODO switch back optimizers and huber
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
         #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 

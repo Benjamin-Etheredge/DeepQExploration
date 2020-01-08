@@ -1,15 +1,24 @@
 import collections
+from collections import deque
 import random
 import sys
+from PIL import Image
 
 import numpy as np
+
+from numpy import dstack, mean, stack, array
 
 
 # TODO implement priority replay buffer
 
+class VoidBuffer:
+    def __init__(self):
+        pass
+
 class Experience:
     MEMORY_SIZE = None
 
+    #@profile
     def __init__(self, state, action, next_state, reward, is_done):
         # self.data = [state, action, next_state, reward, is_done]
         self._state = state
@@ -20,8 +29,9 @@ class Experience:
         self._next_state = next_state
         # if len(self.__nextState.shape) > 1:
         # self.__nextState = self.__nextState.flatten()
-        self.__reward = reward
-        self.__isDone = is_done
+        self._reward = reward
+        self._isDone = is_done
+        '''
         if Experience.MEMORY_SIZE is None:
             # try:
             size_1 = self._state.size * self._state.itemsize
@@ -33,12 +43,16 @@ class Experience:
                 size_2 = 0
 
             Experience.MEMORY_SIZE = (size_1 + size_2 +
-                                      sys.getsizeof(self._action) + sys.getsizeof(self.__reward) +
+                                      sys.getsizeof(self._action) + sys.getsizeof(self._reward) +
                                       sys.getsizeof(self.__isDone)) / 1024. / 1024. / 1024.
+        '''
 
+    '''
     @classmethod
+    @profile
     def size(cls):
         return cls.MEMORY_SIZE
+    '''
 
     @property
     def state(self):
@@ -54,11 +68,24 @@ class Experience:
 
     @property
     def reward(self):
-        return self.__reward
+        return self._reward
 
     @property
     def isDone(self):
-        return self.__isDone
+        return self._isDone
+
+
+class ExperienceLists(Experience):
+
+    @property
+    def state(self):
+        return np.stack(self._state, axis=2)
+
+    @property
+    def next_state(self):
+        return np.stack(self._next_state, axis=2)
+
+
 
 
 class AtariExperience(Experience):
@@ -68,11 +95,16 @@ class AtariExperience(Experience):
 
     @property
     def next_state(self):
-        return np.dstack((self._state[:, :, 1:], self._next_state))
+        return dstack((self._state[:, :, 1:], self._next_state))
 
     @staticmethod
     def gray_scale(img):
-        return np.mean(img[::2, ::2], axis=2).astype(np.uint8)  # TODO reduce 3 -> 2
+        return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)  # TODO reduce 3 -> 2
+
+
+def clipped_attari(reward, *args, **kwargs):
+    reward = min(1, max(reward, -1))
+    return AtariExperience(reward=reward, *args, **kwargs)
 
 
 class ReplayBuffer:
@@ -80,7 +112,7 @@ class ReplayBuffer:
     def __init__(self,
                  max_length: int = 100000,
                  start_length: int = None,
-                 buffer: list = None):
+                 buffer = None):
         """
         Constructor for Default replay buffer
         :param max_length:
@@ -94,34 +126,43 @@ class ReplayBuffer:
             start_length = max_length
         self.start_length = start_length
 
-        if buffer is None:
-            # TODO deque may be slow for sampling
-            buffer = collections.deque([], self.max_length)
-            # buffer = []
-        self.buffer = buffer
+        # TODO deque may be slow for sampling
+
+        # buffer = []
+        if buffer is not None:
+            self.buffer = deque([], len(buffer))
+            self.buffer.extend(buffer)
+        else:
+            self.buffer = deque([], self.max_length)
 
     @property
     def numberOfExperiences(self):
         # TODO optimize with caching/ check for modifying
         return len(self.buffer)
 
+    '''
     @property
     def size(self):
         size = self.numberOfExperiences * Experience.size()
         return size
+    '''
 
     def __len__(self):
         return len(self.buffer)
 
     def dequeue(self):
-        # self.buffer.popleft()
+        #self.buffer.popleft()
+        #count1 = sys.getrefcount(self.buffer[0])
+        #item = self.buffer.popleft()
+        #count2 = sys.getrefcount(item)
+        #del item
         pass
 
     def prep(self, first_state):
         pass
 
     def is_full(self):
-        return self.size > 42 or self.numberOfExperiences > self.max_length
+        return self.numberOfExperiences >= self.max_length
 
     def is_ready(self):
         return self.numberOfExperiences >= self.start_length
@@ -130,7 +171,8 @@ class ReplayBuffer:
     def states(self):
         #for item in self.buffer:
             #yield item.state
-        return [item.state for item in self.buffer]
+        #return np.stack([item.state for item in self.buffer], axis=2)
+        return [np.stack(item.state, axis=2) for item in self.buffer]
         # return [item.state for item in self.buffer]
 
     @property
@@ -141,9 +183,8 @@ class ReplayBuffer:
 
     @property
     def next_states(self):
-        #for item in self.buffer:
-            #yield item.next_state
-         return [item.next_state for item in self.buffer]
+        # No reason to use a generator here as keras would require it to be converted to a list beforehand
+        return [np.stack(item.next_state, axis=2) for item in self.buffer]
 
     @property
     def rewards(self):
@@ -164,6 +205,7 @@ class ReplayBuffer:
         if self.is_full():
             self.dequeue()
         self.buffer.append(experience)
+        del experience
 
     def sample(self, sample_size):
         # return self.reservoirSampling(numberOfSamples)
@@ -207,56 +249,94 @@ class AtariBuffer(ReplayBuffer):
                  buffer: list = None):
         ReplayBuffer.__init__(self, max_length, start_length, buffer)
         if AtariBuffer._all_states is None:
-            AtariBuffer._all_states = collections.deque([], int(max_length * 1.1))
+            AtariBuffer._all_states = collections.deque([], int(max_length * 1.01))
 
+    #@profile
     def append(self, experience):
         # TODO force to be atari expereince to reduce slicing
         if self.is_full():
             self.dequeue()
-        self.push_frame(experience.next_state)
-        new_exp = Experience(None, experience.action, self.state_idx, experience.reward, experience.isDone)
+        self.push_frame(experience.next_state[:, :, -1])
+        #new_exp = Experience(None, experience.action, self.state_idx, experience.reward, experience.isDone)
+        new_exp = (experience.action, self.state_idx, experience.reward, experience.isDone)
         self.buffer.append(new_exp)
         del experience
 
+    '''
     @property
+    #@profile
     def size(self):
         replay_size = self.numberOfExperiences * Experience.size()
         atari_size = len(AtariBuffer._all_states) * AtariBuffer._all_states[0].size * AtariBuffer._all_states[
             0].itemsize / 1024 / 1024 / 1024
         return replay_size + atari_size
+    '''
 
     @property
+    #@profile
     def states(self):
-        return (self.get_frames_from_idx(item.next_state-1) for item in self.buffer)
+        return [self.get_frames_from_idx(item[1]-1) for item in self.buffer]
+        #return (self.get_frames_from_idx(item.next_state-1) for item in self.buffer)
 
     @property
-    def next_states(self):
-        return (self.get_frames_from_idx(item.next_state) for item in self.buffer)
+    def actions(self):
+        return [item[0] for item in self.buffer]
 
+    @property
+    #@profile
+    def next_states(self):
+        #return (self.get_frames_from_idx(item.next_state) for item in self.buffer)
+        return (self.get_frames_from_idx(item[1]) for item in self.buffer)
+
+    @property
+    def rewards(self):
+        return [item[2] for item in self.buffer]
+
+    @property
+    def is_dones(self):
+        return [item[3] for item in self.buffer]
+    # 8.569GiB before tuple buffer
+
+    #@profile
     def get_frames_from_idx(self, frame_idx):
         try:
-            frames = np.stack([self._all_states[idx - AtariBuffer.offset] for idx in range(frame_idx-3, frame_idx+1)], axis=2)
+            frames = stack([self._all_states[idx - AtariBuffer.offset] for idx in range(frame_idx-3, frame_idx+1)], axis=2)
         except IndexError:
             print("why....")
         return frames
 
+    #@profile
     def randomSample(self, numberOfSamples):
         # numpy choice is way slower than random.sample
         # sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
         sample_idxs = random.sample(range(len(self.buffer)), numberOfSamples)
-        samples = [self.buffer[idx] for idx in sample_idxs]
+        samples = [self.construct_experience(idx) for idx in sample_idxs]
         # TODO stop override
-        return sample_idxs, AtariBuffer(numberOfSamples, buffer=samples)
+        return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
 
-    def push_frame(self, state: np.array):
-        assert(len(state.shape) < 3, "incorrect shape")
-        pre_len = len(self._all_states)
-        self._all_states.append(state)
-        self.state_idx += 1
-        post_len = len(self._all_states)
+    #@profile
+    def construct_experience(self, idx: int):
+        #experienc: Experience = self.buffer[idx]
+        experienc = self.buffer[idx]
+        frame_idx: int = experienc[1]
+        return Experience(self.get_frames_from_idx(frame_idx-1),
+                          experienc[0],
+                          self.get_frames_from_idx(frame_idx),
+                          experienc[2],
+                          experienc[3])
+
+    @classmethod
+    #@profile
+    def push_frame(cls, state: array):
+        assert len(state.shape) < 3
+        pre_len = len(cls._all_states)
+        cls._all_states.append(state)
+        cls.state_idx += 1
+        post_len = len(cls._all_states)
         if pre_len == post_len:
             AtariBuffer.offset += 1
 
+    #@profile
     def prep(self, state):
         self.push_frame(state)
         self.push_frame(state)
@@ -270,12 +350,14 @@ class SampleBuffer(ReplayBuffer):
         return [self.get_frames_from_idx(item.next_state-1) for item in self.buffer]
 
     @property
+    #@profile
     def next_states(self):
         return [self.get_frames_from_idx(item.next_state) for item in self.buffer]
 
+    #@profile
     def get_frames_from_idx(self, frame_idx):
         try:
-            frames = np.stack([self._all_states[idx - AtariBuffer.offset] for idx in range(frame_idx-3, frame_idx+1)], axis=2)
+            frames = stack([self._all_states[idx - AtariBuffer.offset] for idx in range(frame_idx-3, frame_idx+1)], axis=2)
         except IndexError:
             print("why....")
         return frames

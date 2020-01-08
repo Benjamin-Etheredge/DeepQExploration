@@ -1,10 +1,22 @@
+# TODO test with starting with large window and reducing size
+# TODO test with randomly removing items from deque instead of using a sliding window
+# TODO switch linear degradation to per frame instead of per game
 import time
 from collections import deque
 from datetime import datetime
 from timeit import default_timer as timer
 from guppy import hpy
+import objgraph
+import tracemalloc
+tracemalloc.start(10)
+#import tracemalloc
+#snapshot = tracemalloc.take_snapshot()
+#display_top(snapshot)
+from copy import deepcopy
+
 
 import gym
+import gc
 
 from learner import *
 from scores import *
@@ -25,9 +37,6 @@ from scores import *
 # tf.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 # TODO process every 4th move
-def dummy_process(data):
-    return data
-
 
 class Agent:
     DECAY_TYPE_LINEAR = 'linear'
@@ -47,7 +56,7 @@ class Agent:
                  verbose=0,
                  seed=None,
                  experience_creator=Experience,
-                 observation_processor=dummy_process,
+                 observation_processor=np.array,
                  window=4,
                  target_network_interval=None):
 
@@ -69,12 +78,14 @@ class Agent:
         self.scoring_env.seed(self.seed())
         self.scoring_env.action_space.seed(self.seed())
         self.random_action_rate = 1.0
-        self.scores = scorer
+        #self.scores = scorer
         self.verbose = verbose
-        self.steps_per_game_scorer = Scores(100)
+        #self.steps_per_game_scorer = Scores(100)
         self.early_stopping = early_stopping
         if verbose >= 1:
-            log_dir = f"logs/agent_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            env_name = self.env.unwrapped.spec.id
+
+            log_dir = f"logs/{env_name}_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
             # self.tensorboard_writer = tf.summary.create_file_writer(log_dir)
             self.tensorboard_writer = tf.summary.FileWriter(log_dir)
             tensorboard = keras.callbacks.TensorBoard(
@@ -111,36 +122,16 @@ class Agent:
             self.randomChoiceDecayRate = float(
                 (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
-            self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / (self.max_episodes)))
+            self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / self.max_episodes))
         # self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
 
-        # TQDM Status Monitors setup
-
-        # tf.summary.record_if(verbose > 0) # TODO learn more about this function
-        status_bars_disabled = verbose < 2
-
-        meter_bar_format_elapsed = "{desc}: {n_fmt} [Elapsed: {elapsed}, {rate_fmt}]"
-        meter_bar_format = "{desc}: {n_fmt} [{rate_fmt}]"
-        tracker_fmt = "{desc}: {total_fmt}"
-        running_average_fmt = tracker_fmt + "[Goal: " + str(reward_threshold) + "]"
-
     def seed(self):
         seed = self.np_random_state.randint(0, 9999)
         assert (seed >= 0)
+        return seed
         # return np.random.randint(0, 99999)  # seed env with controllable random generator
-
-    def is_done_learning(self):
-        average_reward = self.scores.average_reward()
-        # with self.tensorboard_writer.as_default():
-        # tf.summary.scalar("off_policy_average_reward", 0.5, self.iterations)
-        # self.tensorboard_writer.flush()
-
-        # self.iterations+=1
-        variance_of_scores = self.scores.get_variance()
-        return self.scores.get_variance() <= abs(0.01 * self.reward_stopping_threshold)
-        # return average_reward >= self.reward_stopping_threshold
 
     # TODO figure out how to make verbose checking wrapper
     def verbose_1_check(self, *args, **kwargs):
@@ -185,6 +176,7 @@ class Agent:
         # self.learner.update(npSample)
         loss = self.learner.update(sample)
         self.replay_buffer.update(sample_idxs, loss)
+        del sample
 
         return loss
 
@@ -199,118 +191,65 @@ class Agent:
         self.replay_buffer.log()
 
     def render_game(self):
-        # self.scoring_env.seed(self.seed())
-        step = self.scoring_env.reset()
-        is_done = False
-        while not is_done:
-            self.scoring_env.render()
-            action_choice = self.learner.get_next_action(step)
-            _, _, is_done, _ = self.scoring_env.step(action_choice)
+        self.play_game(verbose=10)
 
     def make_move(self, action):
         pass
 
     def prepare_buffer(self):
         while not self.replay_buffer.is_ready():
+            #while True:
             self.play_game(self.replay_buffer)
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
         self.prepare_buffer()
-        if verbose > 3:
-            self.score_model(1, verbose=verbose)
+        #if verbose > 3:
+            #self.score_model(1, verbose=verbose)
 
-        h = hpy()
-        h.heap()
         game_count = 0
         total_steps = 0
         start_time = timer()
-        iteration_time = start_time
-        convergence_counter = 0
-        variance_counter = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
-            # print("Start Iteration: {}".format(game_count))
-            # self.verbose_1_check(tf.summary.scalar, "epsilon_rate_per_game", data=self.random_action_rate,
-            # step=game_count)
-            self.verbose_1_check(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
-            self.verbose_1_check(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
-            buffer_size_in_GBs = self.replay_buffer.size
-            self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
-            # summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
 
-            # self.update_target_model()  # updating between games seems to perform significantly better than every C steps
             game_count += 1
-            average_reward = self.scores.average_reward()
-            variance_of_scores = self.scores.get_variance()
-
-            if self.replay_buffer.is_ready() and variance_of_scores < np.abs(0.01 * self.reward_stopping_threshold):
-                variance_counter += 1
-                if variance_counter > 100:
-                    pass
-            else:
-                variance_counter = 0
-
-            if game_count % self.on_policy_check_interval == 0:
-                # mini_score = self.score_model(1)
-                mini_score = self.score_model(1, self.replay_buffer, verbose=verbose)
-                self.verbose_1_check(name="intermediate_on_policy_score", data=mini_score, step=game_count)
-                # if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
-                if self.early_stopping and mini_score >= self.reward_stopping_threshold:
-                    actual_score = self.score_model(100)
-                    self.verbose_1_check(name="on_policy_score", data=actual_score, step=game_count)
-                    # self.verbose_1_check(tf.summary.scalar, "on_policy_score", data=actual_score, step=game_count)
-                    # actual_score = self.score_model(100, self.replay_buffer)
-                    if actual_score >= self.reward_stopping_threshold * (np.abs(self.reward_stopping_threshold) * 0.1):
-                        return total_steps
 
             # Start a new game
             # self.env.seed(self.seed())
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
-            # step_buffer = np.moveaxis(np.array([step for _ in range(self.window + 1)]), 0, -1)
             step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
-            np_step_buffer = np.stack(step_buffer, axis=2)
+            list_buffer = list(step_buffer)
             self.replay_buffer.prep(step)
+
             is_done = False
             total_reward = 0
             game_steps = 0
-            # self.learner.update_target_model()
             game_start_time = time.time()
+
             while not is_done:
-                # tf.summary.scalar("epsilon_rate_per_step", data=self.random_action_rate, step=total_steps)
                 if verbose > 2:
                     self.env.render()
-                action_choice = self.getNextAction(np_step_buffer[:, :, 1:])
+                action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
                 next_step, reward, is_done, _ = self.env.step(action_choice)
                 next_step = self.observation_processor(next_step)
-                # step_buffer = np.concatenate((np_step_buffer[:, :, 1:], step[:, :, np.newaxis]), axis=2)
                 step_buffer.append(next_step)
-                np_step_buffer = np.stack(step_buffer, axis=2)
+                list_buffer = list(step_buffer)
                 total_reward += reward
                 # TODO add prioirity
-                experience = self.experience_creator(np_step_buffer[:, :, :-1], action_choice, np_step_buffer[:, :, 1:],
-                                                     reward, is_done)
+                experience = self.experience_creator(state=list_buffer[:-1],
+                                                     action=action_choice,
+                                                     next_state=list_buffer[1:],
+                                                     reward=np.clip(reward, -1, 1),
+                                                     is_done=is_done)
                 self.replay_buffer.append(experience)
-                # step = next_step
 
                 if self.replay_buffer.is_ready():
                     loss = self.update_learner()
-                    # tf.summary.scalar("", data=loss, step=total_steps)
                     self.verbose_1_check(name="loss", data=loss, step=total_steps)
-                    # self.verbose_1_check(tf.summary.scalar, data=loss, step=total_steps)
-                    '''
-                    if loss < 0.05:
-                        convergence_counter += 1
-                        if convergence_counter > 100:
-                            pass
-                    else:
-                        convergence_counter = 0
-                    self.loss_counter.total = convergence_counter
-                    self.loss_counter.update(0)
-                    '''
 
                     # self.decayRandomChoicePercentage()
 
@@ -320,18 +259,42 @@ class Agent:
                                              step=game_count)
                         self.update_target_model()
 
-                if verbose > 2 and self.should_log(total_steps):
-                    self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
+                #if verbose > 2 and self.should_log(total_steps):
+                    #self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
+            #print(moves_per_second)
             self.verbose_1_check(name="move_per_second_per_game", data=moves_per_second, step=game_count)
-            self.verbose_1_check(name="off_policy_game_score", data=total_reward, step=game_count)
-            self.scores.append(total_reward)
-            self.steps_per_game_scorer.append(game_steps)
+            self.verbose_1_check(name="off_policy_game_score_per_game", data=total_reward, step=game_count)
+            self.verbose_1_check(name="off_policy_game_score_per_frames", data=total_reward, step=total_steps)
+            #self.scores.append(total_reward)
+            #self.steps_per_game_scorer.append(game_steps)
             self.verbose_1_check(name="steps_per_game", data=game_steps, step=game_count)
             self.decayRandomChoicePercentage()
+            self.verbose_1_check(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
+            self.verbose_1_check(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
+            self.verbose_1_check(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
+            self.verbose_1_check(name="total steps", data=total_steps, step=game_count)
+            #buffer_size_in_GBs = self.replay_buffer.size
+            #self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
+            #gc.collect()
+            '''
+            if game_count % 100 == 0 or game_count == 0 or game_count == 1:
+                #print(gc.collect())
+                objgraph.show_refs([self], filename="agent.png")
+                objgraph.show_refs([self.replay_buffer], filename="replay_buffer.png")
+                objgraph.show_refs([self.learner], filename="learner.png")
+                h = hpy()
+                print(h.heap())
+                snapshot = tracemalloc.take_snapshot()
+                top_stats = snapshot.statistics('lineno')
+
+                print("[ Top 10 ]")
+                for stat in top_stats[:10]:
+                    print(stat)
+            '''
 
         # self.plot()
         # self.score_model()
@@ -356,36 +319,36 @@ class Agent:
         pass
 
     # TODO use void learner to combine methods
-    def play_game(self, buffer=None, verbose: int = 0):
+    # TODO switch to np.clip(x, -1, 1)
+    def play_game(self, buffer=VoidBuffer(), verbose: int = 0):
         total_reward = 0
         done = False
-        # self.scoring_env.seed(self.seed())
+        self.scoring_env.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
         # step_buffer = deque([step for _ in range(self.window+1)], max_length=self.window+1)
         step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
         self.replay_buffer.prep(step)
-        # kjstep_buffer = np.moveaxis(np.array([step for _ in range(self.window+1)]), 0, -1)
-        # step_buffer = deque([], maxlen=self.window)
-        np_step_buffer = np.stack(step_buffer, axis=2)
+        list_buffer = list(step_buffer)
         step_count = 0
 
         while not done:
             if verbose > 3:
                 self.scoring_env.render()
-            action_choice = self.getNextAction(np_step_buffer[:, :, 1:])
-            # action_choice = self.learner.get_next_action(np_step_buffer[:, :, 1:])
+            # TODO convert step_buffer to longer form and make it my window....
+            # TODO but it probably won't make a huge difference since the np.arrays take way more space            action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
+            action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
             # TODO build better policy evaluator
             step, reward, done, _ = self.scoring_env.step(action_choice)
             step_count += 1
             step = self.observation_processor(step)
             step_buffer.append(step)
-            # step_buffer = np.roll(step_buffer, 1, axis=2)
-            # step_buffer[:, :, -1] = step
-            # step_buffer[-1] = np.concatenate((step_buffer[:, :, 1:], step[:, :, np.newaxis]), axis=2)
-            # step_buffer.append(step)
+            list_buffer = list(step_buffer)
             if buffer is not None:
-                experience = self.experience_creator(np_step_buffer[:, :, :-1], action_choice, np_step_buffer[:, :, 1:],
-                                                     reward, done)
+                experience = self.experience_creator(state=list_buffer[:-1],
+                                                     action=action_choice,
+                                                     next_state=list_buffer[1:],
+                                                     reward=np.clip(reward, -1, 1),
+                                                     is_done=done)
                 self.replay_buffer.append(experience)
             total_reward += reward
         return total_reward
@@ -422,6 +385,6 @@ class Agent:
         scores = [self.play_game(buffer, verbose) for _ in range(games)]
         return np.mean(scores)
 
-    def plot(self, game_name=None, learner_name=None):
-        self.scores.plotA(game_name, learner_name)
-        self.scores.plotB(game_name, learner_name)
+    #def plot(self, game_name=None, learner_name=None):
+        #self.scores.plotA(game_name, learner_name)
+        #self.scores.plotB(game_name, learner_name)
