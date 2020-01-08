@@ -123,7 +123,6 @@ class Agent:
                 (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / self.max_episodes))
-        # self.randomChoiceDecayRate = float(np.power(self.max_episode_steps*300, (1./0.05)))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
 
@@ -131,7 +130,6 @@ class Agent:
         seed = self.np_random_state.randint(0, 9999)
         assert (seed >= 0)
         return seed
-        # return np.random.randint(0, 99999)  # seed env with controllable random generator
 
     # TODO figure out how to make verbose checking wrapper
     def tensorboard_log(self, *args, **kwargs):
@@ -139,7 +137,6 @@ class Agent:
             tag, value, step = kwargs['name'], kwargs['data'], kwargs['step']
             summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
             self.tensorboard_writer.add_summary(summary, step)
-        # func(*args, **kwargs)
 
     def should_select_random_action(self):
         return random.uniform(0, 1) < self.random_action_rate
@@ -168,16 +165,11 @@ class Agent:
         else:
             self.random_action_rate = max(self.randomChoiceMinRate,
                                           (self.randomChoiceDecayRate * self.random_action_rate))
-        # self.randomChoicePercentage = minRate + (maxRate - minRate) * np.exp(-decayRate * iteration)
 
     def update_learner(self):
         sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
-        # npSample = convertSampleToNumpyForm(sample)
-        # self.learner.update(npSample)
         loss = self.learner.update(sample)
         self.replay_buffer.update(sample_idxs, loss)
-        del sample
-
         return loss
 
     # TODO implement actual logger
@@ -185,7 +177,6 @@ class Agent:
         return iteration % self.log_triggering_threshold == 0
 
     def log(self):
-        # print("info - optimizaer {0}, loss {1}, dequeAmount: {2}".format(optimizer, loss, dequeAmount))
         # TODO paramertize optimizer
         self.learner.log()
         self.replay_buffer.log()
@@ -296,23 +287,13 @@ class Agent:
                     print(stat)
             '''
 
-        # self.plot()
-        # self.score_model()
         assert total_steps > 0
         return total_steps
 
     def update_target_model(self):
         self.learner.update_target_model()
 
-    def log_play(self, iteration, iteration_time, start_time, step_limit, total_steps, verbose):
-        current_time = timer()
-        iteration_time = current_time
-        self.log()
-        if verbose > 3:
-            self.render_game()
-
     def load_model(self, file_name):
-        # self.learner.load
         pass
 
     def save_model(self, file_name):
@@ -322,15 +303,14 @@ class Agent:
     # TODO switch to np.clip(x, -1, 1)
     def play_game(self, buffer=VoidBuffer(), verbose: int = 0):
         total_reward = 0
-        done = False
         self.scoring_env.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
-        # step_buffer = deque([step for _ in range(self.window+1)], max_length=self.window+1)
         step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
         self.replay_buffer.prep(step)
         list_buffer = list(step_buffer)
         step_count = 0
 
+        done = False
         while not done:
             if verbose > 3:
                 self.scoring_env.render()
@@ -354,34 +334,6 @@ class Agent:
         return total_reward
 
     def score_model(self, games=150, buffer=None, verbose: int = 0):
-        """
-        scores = Scores(score_count=games)
-
-        for _ in range(games):
-            score = self.play_game()
-            scores.append(score)
-        return scores.average_reward()
-        #return np.mean(pool.map(self._map_play_game, range(games)))
-        """
-        # from functools import partial
-        # partial_func = partial(play_game_parallel, self.learner)
-        # pool = multiprocessing.Pool(4)
-        # params = zip([self.learner] * games, pool.map(deepcopy, [self.scoring_env] * games))
-        # temp = pool.map(play_game_parallel, params)
-        # return_array = []
-        # procs = []
-        # for _ in range(games):
-        # reward = play_game_parallel(self.learner, deepcopy(self.scoring_env))
-        # proc = multiprocessing.Process(target=play_game_parallel, args=(self.learner, deepcopy(self.scoring_env), return_array))
-        # proc = multiprocessing.Process(target=do_nothing)
-        # procs.append(proc)
-        # proc.start()
-        # proc.join()
-
-        # total_reward = self.play_game()
-        # scores.append(total_reward)
-        # for proc in procs:
-        # proc.join()
         scores = [self.play_game(buffer, verbose) for _ in range(games)]
         return np.mean(scores)
 
