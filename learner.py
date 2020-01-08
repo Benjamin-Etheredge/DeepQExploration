@@ -196,35 +196,28 @@ class DeepQFactory:
     #@static create_atari()
 
     # Different Model Construction Methods.
-    #from tensorflow.compat.v1.keras import Input, Model
-    #from tensorflow.compat.v1.keras.layers import Dense,
     @staticmethod
     def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
-        #model = keras.models.Sequential()
-        #model.add()
         inputs = keras.Input(shape=(input_dimension,))
         hidden_layer = inputs
         for _ in range(hidden_layer_count):
             hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
+            # TODO explore batchnorm in RL.
             #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
         model = keras.Model(inputs=inputs, outputs=predictions)
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        # TODO do more testing on MSE vs Huber
         model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
-        #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
     @staticmethod
     def dueling_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
-        # inputs = keras.Input(shape=(env.observation_space.shape[0],))
         inputs = keras.Input(shape=(input_dimension,))
 
         # Build Advantage layer
         advantage_hidden_layer = inputs
         for _ in range(hidden_layer_count):
             advantage_hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(advantage_hidden_layer)
-        # predictions = keras.layers.Dense(env.action_space.n)(advantage_hidden_layer)
         predictions_advantage = keras.layers.Dense(output_dimension, activation='linear')(advantage_hidden_layer)
 
         # Build Value layer
@@ -235,42 +228,22 @@ class DeepQFactory:
 
         # Combine layers
         advantage_average = keras.layers.Lambda(mean)(predictions_advantage)
-        #advantage_average = keras.layers.AveragePooling1D()(predictions_advantage)
-        #advantage_average = keras.layers.Average()(predictions_advantage)
-        # advantageAverage = keras.layers.Average()([predictionsAdvantage, predictionsAdvantage])
-        # advantageAverage = keras.backend.mean(predictionsAdvantage)
-        # print(advantageAverage)
-        # advantageAverage = keras.backend.constant(advantageAverage, shape=(outputDimension, 1))
 
         advantage = keras.layers.Subtract()([predictions_advantage, advantage_average])
 
         predictions = keras.layers.Add()([advantage, predictions_value])
 
         model = keras.Model(inputs=inputs, outputs=predictions)
-        # model.compile(optimizer=keras.optimizers.Adam(lr=self.learningRate, decay=self.LRdecayRate),
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
-        #Emodel.compile(optimizer=keras.optimizers.RMSprop(lr=cls.learningRate), loss= keras.losses.huber_loss)
-        #model.compile(optimizer=keras.optimizers.RMSprop(lr=learning_rate), loss='mse')
-        #model.compile(optimizer=keras.optimizers.RMSprop(lr=learning_rate), loss=keras.losses.Huber())
-        # model.compile(optimizer=keras.optimizers.RMSprop(lr=cls.learningRate),
-                      #loss='mse')
-        # metrics=['accuracy'])
-        #keras.utils.plot_model(model, to_file=f"duel_model.png")
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
         return model
 
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_conv_build_model(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
                                  conv_nodes, kernel_size, conv_stride):
-        #model = keras.models.Sequential()
-        #model.add()
-        #input_dimensions = list(input_dimensions) + [1]
-        #tprint(input_dimensions)
-        #input_dimensions = input_dimensions[0], input_dimensions[1]/2, input_dimensions[2]/2
         input_dimensions = (int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2))), input_dimensions[2]
         inputs = keras.Input(shape=tuple(input_dimensions))  # we'll be using the past 4 frames
         hidden_layer = keras.layers.Lambda(lambda x: x / 255.0)(inputs)
-        #hidden_layer = inputs
         '''
         for conv_count, kernel, stride in zip(conv_nodes, kernel_size, conv_stride):
             hidden_layer = keras.layers.Conv2D(filters=conv_count,
@@ -287,15 +260,11 @@ class DeepQFactory:
 
         for _ in range(hidden_layer_count+1):
             hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
-            #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
 
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
         model = keras.Model(inputs=inputs, outputs=predictions)
         #TODO switch back optimizers and huber
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
         model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
-        #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
 

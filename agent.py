@@ -189,14 +189,11 @@ class Agent:
 
     def prepare_buffer(self):
         while not self.replay_buffer.is_ready():
-            #while True:
             self.play_game(self.replay_buffer)
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
         self.prepare_buffer()
-        #if verbose > 3:
-            #self.score_model(1, verbose=verbose)
 
         game_count = 0
         total_steps = 0
@@ -336,7 +333,3 @@ class Agent:
     def score_model(self, games=150, buffer=None, verbose: int = 0):
         scores = [self.play_game(buffer, verbose) for _ in range(games)]
         return np.mean(scores)
-
-    #def plot(self, game_name=None, learner_name=None):
-        #self.scores.plotA(game_name, learner_name)
-        #self.scores.plotB(game_name, learner_name)

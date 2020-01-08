@@ -112,13 +112,7 @@ class ReplayBuffer:
     def __init__(self,
                  max_length: int = 100000,
                  start_length: int = None,
-                 buffer = None):
-        """
-        Constructor for Default replay buffer
-        :param max_length:
-        :param start_length:
-        :param buffer:
-        """
+                 buffer=None):
 
         self.max_length = max_length
 
@@ -128,7 +122,6 @@ class ReplayBuffer:
 
         # TODO deque may be slow for sampling
 
-        # buffer = []
         if buffer is not None:
             self.buffer = deque([], len(buffer))
             self.buffer.extend(buffer)
@@ -137,15 +130,8 @@ class ReplayBuffer:
 
     @property
     def experience_count(self):
-        # TODO optimize with caching/ check for modifying
         return len(self.buffer)
 
-    '''
-    @property
-    def size(self):
-        size = self.numberOfExperiences * Experience.size()
-        return size
-    '''
 
     def __len__(self):
         return len(self.buffer)

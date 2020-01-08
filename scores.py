@@ -1,6 +1,6 @@
 import numpy as np
-import logging
 import matplotlib.pyplot as plt
+
 
 class VoidScores:
     def __init__(self):
@@ -58,10 +58,7 @@ class Scores(VoidScores):
         else:
             return float("inf")
 
-    def numberOfGoodLandings(cls):
-        return (cls.last_scores > 0).sum()
-
-    def plotB(cls, game_name=None, learner_name=None):
+    def plotB(self, game_name=None, learner_name=None):
         plt.plot(cls.all_averages)
         y_label = ""
         if game_name is not None:
