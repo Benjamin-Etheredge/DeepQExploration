@@ -1,17 +1,10 @@
 # TODO note, total steps does not currenlty reflect the strating buffer prep
-import gym
 from unittest import TestCase
-import numpy as np
-import threading
 from multiprocessing import Process
-from multiprocessing import Pool
-import sys
-import os
-
 
 from agent import *
-from learner import *
 from buffer import *
+from learners.learner import DeepQFactory
 
 
 class TestAgent(TestCase):

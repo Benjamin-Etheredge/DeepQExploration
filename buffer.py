@@ -7,40 +7,12 @@ from numpy import mean, array
 
 
 # TODO implement priority replay buffer
+from experience import Experience
+
 
 class VoidBuffer:
     def __init__(self):
         pass
-
-class Experience:
-    MEMORY_SIZE = None
-
-    def __init__(self, state, action, next_state, reward, is_done):
-        self._state = state
-        self._action = action
-        self._next_state = next_state
-        self._reward = reward
-        self._isDone = is_done
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def action(self):
-        return self._action
-
-    @property
-    def next_state(self):
-        return self._next_state
-
-    @property
-    def reward(self):
-        return self._reward
-
-    @property
-    def isDone(self):
-        return self._isDone
 
 class AtariExperience(Experience):
 
@@ -78,7 +50,6 @@ class ReplayBuffer:
     @property
     def experience_count(self):
         return len(self.buffer)
-
 
     def __len__(self):
         return len(self.buffer)

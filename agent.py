@@ -2,12 +2,12 @@
 # TODO test with randomly removing items from deque instead of using a sliding window
 # TODO switch linear degradation to per frame instead of per game
 import time
-from collections import deque
 from datetime import datetime
 from timeit import default_timer as timer
-from guppy import hpy
-import objgraph
 import tracemalloc
+
+from learners.learner import DeepQ
+
 tracemalloc.start(10)
 #import tracemalloc
 #snapshot = tracemalloc.take_snapshot()
@@ -16,7 +16,6 @@ from copy import deepcopy
 
 
 import gym
-import gc
 
 from learner import *
 from scores import *
