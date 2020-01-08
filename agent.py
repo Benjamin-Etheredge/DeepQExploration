@@ -134,20 +134,20 @@ class Agent:
         # return np.random.randint(0, 99999)  # seed env with controllable random generator
 
     # TODO figure out how to make verbose checking wrapper
-    def verbose_1_check(self, *args, **kwargs):
+    def tensorboard_log(self, *args, **kwargs):
         if self.verbose >= 1:
             tag, value, step = kwargs['name'], kwargs['data'], kwargs['step']
             summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
             self.tensorboard_writer.add_summary(summary, step)
         # func(*args, **kwargs)
 
-    def shouldSelectRandomAction(self):
+    def should_select_random_action(self):
         return random.uniform(0, 1) < self.random_action_rate
 
-    def shouldUpdateLearner(self):
+    def should_update_learner(self):
         return self.replay_buffer.is_ready()
 
-    def shouldUpdateLearnerTargetModel(self, iteration):
+    def should_update_target_model(self, iteration):
         return iteration % self.target_network_updating_interval == 0
 
     # TODO why should this be a property?
@@ -155,7 +155,7 @@ class Agent:
         return self.replay_buffer.is_ready()
 
     def getNextAction(self, state, random_choice_rate=None):
-        if self.shouldSelectRandomAction():
+        if self.should_select_random_action():
             return self.env.action_space.sample()
         else:
             return self.learner.get_next_action(state)
@@ -249,12 +249,12 @@ class Agent:
 
                 if self.replay_buffer.is_ready():
                     loss = self.update_learner()
-                    self.verbose_1_check(name="loss", data=loss, step=total_steps)
+                    self.tensorboard_log(name="loss", data=loss, step=total_steps)
 
                     # self.decayRandomChoicePercentage()
 
-                    if self.shouldUpdateLearnerTargetModel(total_steps):
-                        self.verbose_1_check(name="target_model_updates",
+                    if self.should_update_target_model(total_steps):
+                        self.tensorboard_log(name="target_model_updates",
                                              data=int(total_steps / self.target_network_updating_interval),
                                              step=game_count)
                         self.update_target_model()
@@ -266,17 +266,17 @@ class Agent:
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
             #print(moves_per_second)
-            self.verbose_1_check(name="move_per_second_per_game", data=moves_per_second, step=game_count)
-            self.verbose_1_check(name="off_policy_game_score_per_game", data=total_reward, step=game_count)
-            self.verbose_1_check(name="off_policy_game_score_per_frames", data=total_reward, step=total_steps)
+            self.tensorboard_log(name="move_per_second_per_game", data=moves_per_second, step=game_count)
+            self.tensorboard_log(name="off_policy_game_score_per_game", data=total_reward, step=game_count)
+            self.tensorboard_log(name="off_policy_game_score_per_frames", data=total_reward, step=total_steps)
             #self.scores.append(total_reward)
             #self.steps_per_game_scorer.append(game_steps)
-            self.verbose_1_check(name="steps_per_game", data=game_steps, step=game_count)
+            self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
             self.decayRandomChoicePercentage()
-            self.verbose_1_check(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
-            self.verbose_1_check(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
-            self.verbose_1_check(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
-            self.verbose_1_check(name="total steps", data=total_steps, step=game_count)
+            self.tensorboard_log(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
+            self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
+            self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
+            self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
             #buffer_size_in_GBs = self.replay_buffer.size
             #self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
             #gc.collect()

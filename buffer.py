@@ -136,7 +136,7 @@ class ReplayBuffer:
             self.buffer = deque([], self.max_length)
 
     @property
-    def numberOfExperiences(self):
+    def experience_count(self):
         # TODO optimize with caching/ check for modifying
         return len(self.buffer)
 
@@ -157,10 +157,10 @@ class ReplayBuffer:
         pass
 
     def is_full(self):
-        return self.numberOfExperiences >= self.max_length
+        return self.experience_count >= self.max_length
 
     def is_ready(self):
-        return self.numberOfExperiences >= self.start_length
+        return self.experience_count >= self.start_length
 
     @property
     def states(self):
@@ -200,14 +200,14 @@ class ReplayBuffer:
 
     def sample(self, sample_size):
         # return self.reservoirSampling(numberOfSamples)
-        return self.randomSample(sample_size)
+        return self.random_sample(sample_size)
 
-    def randomSample(self, numberOfSamples):
+    def random_sample(self, sample_count):
         # numpy choice is way slower than random.sample
         # sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
-        sample_idxs = random.sample(range(len(self.buffer)), numberOfSamples)
+        sample_idxs = random.sample(range(len(self.buffer)), sample_count)
         samples = [self.buffer[idx] for idx in sample_idxs]
-        return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
+        return sample_idxs, ReplayBuffer(sample_count, buffer=samples)
 
     def update(self, indexes, loss):
         pass
