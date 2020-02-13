@@ -1,5 +1,5 @@
-from unittest import TestCase
 import gym
+from unittest import TestCase
 import numpy as np
 import threading
 from multiprocessing import Process
@@ -128,18 +128,18 @@ class TestAgent(TestCase):
             environment='SpaceInvaders-v0',
             max_episodes=100000,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
-            sample_size=32,
+            sample_size=64,
             verbose=1,
             experience_creator=AtariExperience,
             layer_count=1,
             #buffer_creator=AtariBuffer,
             learning_rate=0.00025,
             random_choice_min_rate=0.1,
-            nodes_per_layer=256,
+            nodes_per_layer=512,
             window=4,
             target_network_interval=10000,
             data_func=AtariExperience.gray_scale,
-            conv_layer_count=2, conv_nodes=16, conv_increase_factor=2, kernel_size=8, conv_stride=2)
+            conv_layer_count=2, conv_nodes=32, conv_increase_factor=2, kernel_size=8, conv_stride=2)
 
 
     def test_play_all(self):

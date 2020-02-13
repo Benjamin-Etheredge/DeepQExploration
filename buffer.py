@@ -7,6 +7,10 @@ import numpy as np
 
 # TODO implement priority replay buffer
 
+class VoidBuffer:
+    def __init__(self):
+        pass
+
 class Experience:
     MEMORY_SIZE = None
 
@@ -20,7 +24,7 @@ class Experience:
         self._next_state = next_state
         # if len(self.__nextState.shape) > 1:
         # self.__nextState = self.__nextState.flatten()
-        self.__reward = reward
+        self._reward = reward
         self.__isDone = is_done
         if Experience.MEMORY_SIZE is None:
             # try:
@@ -33,7 +37,7 @@ class Experience:
                 size_2 = 0
 
             Experience.MEMORY_SIZE = (size_1 + size_2 +
-                                      sys.getsizeof(self._action) + sys.getsizeof(self.__reward) +
+                                      sys.getsizeof(self._action) + sys.getsizeof(self._reward) +
                                       sys.getsizeof(self.__isDone)) / 1024. / 1024. / 1024.
 
     @classmethod
@@ -54,7 +58,7 @@ class Experience:
 
     @property
     def reward(self):
-        return self.__reward
+        return self._reward
 
     @property
     def isDone(self):
@@ -115,6 +119,8 @@ class ReplayBuffer:
 
     def dequeue(self):
         # self.buffer.popleft()
+        #item = self.buffer.popleft()
+        #del item
         pass
 
     def prep(self, first_state):
@@ -207,13 +213,13 @@ class AtariBuffer(ReplayBuffer):
                  buffer: list = None):
         ReplayBuffer.__init__(self, max_length, start_length, buffer)
         if AtariBuffer._all_states is None:
-            AtariBuffer._all_states = collections.deque([], int(max_length * 1.1))
+            AtariBuffer._all_states = collections.deque([], int(max_length * 1.01))
 
     def append(self, experience):
         # TODO force to be atari expereince to reduce slicing
         if self.is_full():
             self.dequeue()
-        self.push_frame(experience.next_state)
+        self.push_frame(experience.next_state[:, :, -1])
         new_exp = Experience(None, experience.action, self.state_idx, experience.reward, experience.isDone)
         self.buffer.append(new_exp)
         del experience
@@ -244,16 +250,26 @@ class AtariBuffer(ReplayBuffer):
         # numpy choice is way slower than random.sample
         # sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
         sample_idxs = random.sample(range(len(self.buffer)), numberOfSamples)
-        samples = [self.buffer[idx] for idx in sample_idxs]
+        samples = [self.construct_experience(idx) for idx in sample_idxs]
         # TODO stop override
-        return sample_idxs, AtariBuffer(numberOfSamples, buffer=samples)
+        return sample_idxs, ReplayBuffer(numberOfSamples, buffer=samples)
 
-    def push_frame(self, state: np.array):
-        assert(len(state.shape) < 3, "incorrect shape")
-        pre_len = len(self._all_states)
-        self._all_states.append(state)
-        self.state_idx += 1
-        post_len = len(self._all_states)
+    def construct_experience(self, idx: int):
+        experienc: Experience = self.buffer[idx]
+        frame_idx: int = experienc.next_state
+        return Experience(self.get_frames_from_idx(frame_idx-1),
+                          experienc.action,
+                          self.get_frames_from_idx(frame_idx),
+                          experienc.reward,
+                          experienc.isDone)
+
+    @classmethod
+    def push_frame(cls, state: np.array):
+        assert len(state.shape) < 3
+        pre_len = len(cls._all_states)
+        cls._all_states.append(state)
+        cls.state_idx += 1
+        post_len = len(cls._all_states)
         if pre_len == post_len:
             AtariBuffer.offset += 1
 

@@ -172,7 +172,8 @@ class DeepQFactory:
     @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Atari_Clipped_Double_Duel_DeepQ",
-                     q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
+                     q_prime_function=DeepQFactory.double_deepq_q_prime,
+                     #q_prime_function=DeepQFactory.clipped_double_deep_q_q_prime,
                      build_model_function=DeepQFactory.vanilla_conv_build_model, *args, **kwargs)
 
     # Different Model Construction Methods.
@@ -188,7 +189,8 @@ class DeepQFactory:
         predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
         model = keras.Model(inputs=inputs, outputs=predictions)
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, decay=1e-08), loss='mse')
-        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss='mse')
+        model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
         #keras.utils.plot_model(model, to_file=f"model.png")
         return model
 
