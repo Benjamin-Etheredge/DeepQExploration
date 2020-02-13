@@ -8,5 +8,6 @@ RUN apt-get update && \
 COPY . /app
 WORKDIR /app
 #ENTRYPOINT python
+CMD bash
 # TODO get mounting for project files working
 #RUN pip install -r /app/requirements.txt
