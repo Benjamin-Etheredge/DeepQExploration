@@ -1,3 +1,4 @@
+# TODO note, total steps does not currenlty reflect the strating buffer prep
 import gym
 from unittest import TestCase
 import numpy as np
@@ -47,7 +48,7 @@ class TestAgent(TestCase):
               layer_count=2,
               learning_rate=0.001,
               random_choice_min_rate=0.00,
-              sample_size=64,
+              sample_size=32,
               verbose=0,
               experience_creator=Experience,
               buffer_creator=ReplayBuffer,
@@ -78,7 +79,8 @@ class TestAgent(TestCase):
                 #feature_count *= dim
         action_count = env.action_space.n
         # Scale gamma to approach zero near max_episode_steps
-        gamma = float(np.power(0.0001, 1. / max_episode_steps))
+        gamma = 0.99
+        #gamma = float(np.power(0.0001, 1. / max_episode_steps))
         learner.build_model(input_dimension=feature_count, output_dimension=action_count,
                             nodes_per_layer=nodes_per_layer,
                             learning_rate=learning_rate,
@@ -88,12 +90,14 @@ class TestAgent(TestCase):
         #start_length = min(int(max_episodes/10) * max_episode_steps, 500)
         #start_length = min(int(max_episodes) * max_episode_steps, 10000000)
         start_length = 200000
-        # TODO account for possible extra space from scoring
+        #start_length = 1000000
+        #max_possible_step_count = start_length * 1
         max_possible_step_count = start_length * 5
+        # TODO account for possible extra space from scoring
 
         agent = Agent(
             learner=learner,
-            scorer=Scores(10),
+            scorer=VoidScores(),
             sample_size=sample_size,
             replay_buffer=buffer_creator(max_length=max_possible_step_count, start_length=start_length),
             environment=env,
@@ -103,11 +107,12 @@ class TestAgent(TestCase):
             max_episodes=max_episodes,
             early_stopping=False,
             verbose=verbose,
+            seed=4,
             experience_creator=experience_creator,
             observation_processor=data_func,
             window=window,
             target_network_interval=target_network_interval)
-        step_count = agent.play(max_episodes * max_episode_steps, verbose=0)
+        agent.play(max_episodes * max_episode_steps, verbose=0)
         #score = agent.score_model(100, verbose=0)
 
         #self.assertGreaterEqual(score, reward_threshold)
@@ -123,24 +128,38 @@ class TestAgent(TestCase):
         que.put_nowait((f"{environment}_{learner_creator().name}", score, reward_threshold))
         #return(f"{environment}_{learner_creator().name}", score, reward_threshold)
 
-    def test_SpaceInvaders_v0(self):
+    ATARI_ENVS = [
+        "SpaceInvaders-v0"
+    ]
+    def test_atari(self, environment_name):
         self.test_play(
-            environment='SpaceInvaders-v0',
+            environment=environment_name,
             max_episodes=100000,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
             sample_size=64,
             verbose=1,
-            experience_creator=AtariExperience,
+            #experience_creator=AtariExperience,
             layer_count=1,
             #buffer_creator=AtariBuffer,
             learning_rate=0.00025,
+            #learning_rate=0.00025,
             random_choice_min_rate=0.1,
             nodes_per_layer=512,
             window=4,
             target_network_interval=10000,
             data_func=AtariExperience.gray_scale,
-            conv_layer_count=2, conv_nodes=32, conv_increase_factor=2, kernel_size=8, conv_stride=2)
+            conv_nodes=[32, 64, 64], kernel_size=[8, 4, 3], conv_stride=[4, 2, 1])
 
+    def test_SpaceInvaders_v0(self):
+        self.test_atari("SpaceInvaders-v0")
+
+    def test_Breakout(self):
+        self.test_atari("Breakout-v0")
+
+    def test_VideoPinball(self):
+        self.test_atari("VideoPinball-v0")
+
+    #conv_nodes = [32, 64, 64], kernel_size = [8, 4, 3], conv_stride = [4, 2, 1])
 
     def test_play_all(self):
         # TODO debug pool io.TextIOWrapper object issue
@@ -184,7 +203,6 @@ class TestAgent(TestCase):
                     #all_done = False
                     #time.sleep(1)
 
-
     def get_env_info(self, env_name):
         all_envs = gym.envs.registry.all()
         self.assertIn(env_name, [env.id for env in all_envs], "Game choice not in gym registry.")
@@ -222,3 +240,14 @@ class TestAgent(TestCase):
             learning_rate=0.0001,
             random_choice_min_rate=0.0)
 
+if __name__ == '__main__':
+    import unittest
+    #unittest.main()
+    #suite = unittest.TestLoader().loadTestsFromTestCase(TestAgent)
+    #suite = unittest.TestSuite()
+    #suite.addTest(TestAgent.test_SpaceInvaders_v0)
+    #unittest.TextTestRunner().run(suite)
+    suite = unittest.TestSuite()
+    suite.addTest(TestAgent("test_SpaceInvaders_v0"))
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
