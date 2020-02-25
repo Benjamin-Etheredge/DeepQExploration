@@ -73,8 +73,9 @@ class ReplayBuffer:
 
     @property
     def actions(self):
-        for item in self.buffer:
-            yield item.action
+        return [item.action for item in self.buffer]
+        #for item in self.buffer:
+            #yield item.action
 
     @property
     def next_states(self):
@@ -83,13 +84,15 @@ class ReplayBuffer:
 
     @property
     def rewards(self):
-        for item in self.buffer:
-            yield item.reward
+        return [item.reward for item in self.buffer]
+        #for item in self.buffer:
+            #yield item.reward
 
     @property
     def is_dones(self):
-        for item in self.buffer:
-            yield item.isDone
+        return [item.isDone for item in self.buffer]
+        #$for item in self.buffer:
+            #$yield item.isDone
 
     @property
     def training_items(self):
