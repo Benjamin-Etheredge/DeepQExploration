@@ -3,12 +3,12 @@
 # Custom Packages
 from agent import *
 from buffer import *
-from learner import *
 
 # create logger with 'spam_application'
 
 #logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 #logging.warning('This will get logged to a file')
+from learners.learner import DeepQFactory
 
 if __name__ == "__main__":
     print(f"cpus: {os.cpu_count()}")
