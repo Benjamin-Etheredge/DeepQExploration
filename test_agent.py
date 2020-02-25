@@ -47,7 +47,9 @@ class TestAgent(TestCase):
               buffer_creator=ReplayBuffer,
               data_func=None,
               window=4,
-              target_network_interval=None, *args, **kwargs):
+              target_network_interval=None,
+              random_decay_end=1000000,
+              *args, **kwargs):
 
         # Seed random variables
         np.random.seed(4)
@@ -104,7 +106,8 @@ class TestAgent(TestCase):
             experience_creator=experience_creator,
             observation_processor=data_func,
             window=window,
-            target_network_interval=target_network_interval)
+            target_network_interval=target_network_interval,
+            random_decay_end=random_decay_end)
         agent.play(max_episodes * max_episode_steps, verbose=0)
         #score = agent.score_model(100, verbose=0)
 
@@ -129,25 +132,32 @@ class TestAgent(TestCase):
             environment=environment_name,
             max_episodes=100000,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
-            sample_size=64,
+            sample_size=32,
             verbose=1,
             #experience_creator=AtariExperience,
-            layer_count=1,
+            layer_count=2,
             #buffer_creator=AtariBuffer,
-            learning_rate=0.00025,
+            learning_rate=0.0000625,
             #learning_rate=0.00025,
             random_choice_min_rate=0.1,
+            random_decay_end=1000000,
             nodes_per_layer=512,
             window=4,
             target_network_interval=10000,
             data_func=AtariExperience.gray_scale,
-            conv_nodes=[32, 64, 64], kernel_size=[8, 4, 3], conv_stride=[4, 2, 1])
+            conv_nodes=[32, 64, 64],
+            kernel_size=[8, 4, 3],
+            conv_stride=[4, 2, 1])
 
     def test_SpaceInvaders_v0(self):
         self.test_atari("SpaceInvaders-v0")
 
     def test_Breakout(self):
-        self.test_atari("Breakout-v0")
+        self.test_atari("Breakout-v4")
+
+    def test_Breakout_v4(self):
+        self.test_atari("Breakout-v4")
+        #self.test_atari("Breakout-v0")
 
     def test_VideoPinball(self):
         self.test_atari("VideoPinball-v0")
