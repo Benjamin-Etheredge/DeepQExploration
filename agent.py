@@ -4,21 +4,23 @@
 import time
 from datetime import datetime
 from timeit import default_timer as timer
-import tracemalloc
+import sys
 
-from learners.learner import DeepQ
+from learners.learner import *
+from learner import *
+from tensorflow_core.python.keras.api._v1 import keras
 
-tracemalloc.start(10)
-#import tracemalloc
-#snapshot = tracemalloc.take_snapshot()
-#display_top(snapshot)
 from copy import deepcopy
-
 
 import gym
 
-from learner import *
 from scores import *
+from experience import Experience
+from buffer import ReplayBuffer, VoidBuffer
+from collections import deque
+import random
+import tensorflow.compat.v1 as tf
+tf.disable_eager_execution()
 
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -57,7 +59,8 @@ class Agent:
                  experience_creator=Experience,
                  observation_processor=np.array,
                  window=4,
-                 target_network_interval=None):
+                 target_network_interval=None,
+                 random_decay_end=1000000):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
@@ -119,7 +122,8 @@ class Agent:
             random_choice_decay_min = 0.0000000000000001
         if self.decay_type == 'linear':
             self.randomChoiceDecayRate = float(
-                (1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
+                (1.0 - random_choice_decay_min) / random_decay_end)
+                #(1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
@@ -197,26 +201,9 @@ class Agent:
         game_count = 0
         total_steps = 0
         start_time = timer()
-        iteration_time = start_time
         while total_steps <= step_limit and self.max_episodes > game_count:
-            # summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
 
             game_count += 1
-
-            '''
-            if game_count % self.on_policy_check_interval == 0:
-                # mini_score = self.score_model(1)
-                mini_score = self.score_model(1, self.replay_buffer, verbose=verbose)
-                self.verbose_1_check(name="intermediate_on_policy_score", data=mini_score, step=game_count)
-                # if self.early_stopping and mini_score >= self.reward_stopping_threshold or np.isclose(mini_score, self.reward_stopping_threshold, rtol=0.1):
-                if self.early_stopping and mini_score >= self.reward_stopping_threshold:
-                    actual_score = self.score_model(100)
-                    self.verbose_1_check(name="on_policy_score", data=actual_score, step=game_count)
-                    # self.verbose_1_check(tf.summary.scalar, "on_policy_score", data=actual_score, step=game_count)
-                    # actual_score = self.score_model(100, self.replay_buffer)
-                    if actual_score >= self.reward_stopping_threshold * (np.abs(self.reward_stopping_threshold) * 0.1):
-                        return total_steps
-            '''
 
             # Start a new game
             # self.env.seed(self.seed())
@@ -255,7 +242,7 @@ class Agent:
                     loss = self.update_learner()
                     self.tensorboard_log(name="loss", data=loss, step=total_steps)
 
-                    # self.decayRandomChoicePercentage()
+                    self.decay_epsilon()
 
                     if self.should_update_target_model(total_steps):
                         self.tensorboard_log(name="target_model_updates",
@@ -276,7 +263,7 @@ class Agent:
             #self.scores.append(total_reward)
             #self.steps_per_game_scorer.append(game_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
-            self.decay_epsilon()
+            #self.decay_epsilon()
             self.tensorboard_log(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
