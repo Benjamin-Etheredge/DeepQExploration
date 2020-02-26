@@ -382,10 +382,16 @@ class MyLayer(tf.keras.layers.Layer):
     def call(self, x):
         assert isinstance(x, list)
         state_action_values, action, q_prime = x
-        squeezed_action = tf.squeeze(action, axis=[1])
-        #return [state_action_values]
+        #squeezed_action = tf.squeeze(action, axis=[1])
+        #return [state_action_values
+        exp_q = tf.expand_dims(q_prime, -1)
+        cols = tf.squeeze(action, axis=[1])
+        rows = tf.range(tf.shape(action)[0])
+        indicies = tf.stack([rows, cols], axis=-1)
 
-        return tf.tensor_scatter_nd_update(state_action_values, squeezed_action, q_prime)
+        return tf.tensor_scatter_nd_update(state_action_values, indicies, q_prime)
+        #return tf.tensor_scatter_nd_update(state_action_values, action, q_prime)
+        #return tf.tensor_scatter_nd_update(state_action_values, squeezed_action, q_prime)
         # TODO does printing slow down?
         #print(state_action_values.shape)
         #print(action.shape)
