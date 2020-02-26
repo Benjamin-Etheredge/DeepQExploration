@@ -366,7 +366,8 @@ class Q_Prime_Layer(tf.keras.layers.Layer):
         #new_values = tf.where(is_done, tf.zeros(is_done.shape[0]), K.max(next_state_action_values, axis=1))
         #return new_values
         squeezed_reward = tf.squeeze(reward, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
-        return (new_values * self.gamma) + squeezed_reward
+        adjusted_q_prime = (new_values * self.gamma) + squeezed_reward
+        return adjusted_q_prime
 
 
 class MyLayer(tf.keras.layers.Layer):
@@ -384,7 +385,7 @@ class MyLayer(tf.keras.layers.Layer):
         state_action_values, action, q_prime = x
         #squeezed_action = tf.squeeze(action, axis=[1])
         #return [state_action_values
-        exp_q = tf.expand_dims(q_prime, -1)
+        #exp_q = tf.expand_dims(q_prime, -1)
         cols = tf.squeeze(action, axis=[1])
         rows = tf.range(tf.shape(action)[0])
         indicies = tf.stack([rows, cols], axis=-1)
