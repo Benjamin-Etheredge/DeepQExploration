@@ -84,7 +84,7 @@ class TestAgent(TestCase):
 
         #start_length = min(int(max_episodes/10) * max_episode_steps, 500)
         #start_length = min(int(max_episodes) * max_episode_steps, 10000000)
-        start_length = 200000
+        start_length = 20000
         #start_length = 1000000
         #max_possible_step_count = start_length * 1
         max_possible_step_count = start_length * 5
