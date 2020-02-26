@@ -7,19 +7,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/app
-      - ./logs:/app/logs
-    #ports:
-      #- 0.0.0.0:6006:6006
-    #command: python -m pytest test_agent.py::TestAgent::test_SpaceInvaders_v0
-    #command: ls && sleep 100
-  source_dev:
-    image: source_dev
-    build:
-      context: .
-      dockerfile: test.Dockerfile
-    volumes:
-      - .:/app
-      - ./logs:/app/logs
+    command: python -m pytest test_agent.py::TestAgent::test_Breakout
   board:
     image: tensorflow/tensorflow:latest-gpu-py3
     volumes:
