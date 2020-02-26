@@ -16,10 +16,18 @@ from buffer import ReplayBuffer
 #os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
 #import tensorflow.compat.v1 as tf
+#tf.disable_eager_execution()
+#tf.disable_eager_execution()
 import tensorflow as tf
+#tf.compat.v1.disable_eager_execution()
+
 
 #import tensorflow.compat.v1.keras.backend as K
 import tensorflow.keras.backend as K
+#from tensorflow.compat.v1.keras.layers import Dense, Conv2D, Lambda, Flatten
+#from tensorflow.compat.v1.keras import Input
+from tensorflow.keras.layers import Dense, Conv2D, Lambda, Flatten
+from tensorflow.keras import Input
 #dtype = 'float16'
 #K.set_floatx(dtype)
 #K.set_epsilon(1e-4)
@@ -273,11 +281,12 @@ class DeepQFactory:
 
         print('building model')
         input_dimensions = (int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2))), input_dimensions[2]
-        states = keras.Input(shape=tuple(input_dimensions))  # we'll be using the past 4 frames
-        next_states = keras.Input(shape=tuple(input_dimensions))  # we'll be using the past 4 frames
-        action = keras.Input(shape=(1,), dtype=tf.int32)  # we'll be using the past 4 frames
-        is_done = keras.Input(shape=(1,), dtype=tf.bool)  # we'll be using the past 4 frames
-        reward = keras.Input(shape=(1,))  # we'll be using the past 4 frames
+
+        states = Input(shape=tuple(input_dimensions), name='states') 
+        next_states = Input(shape=tuple(input_dimensions), name='next_states') 
+        action = Input(shape=(1,), dtype=tf.int32, name='action') 
+        is_done = Input(shape=(1,), dtype=tf.bool, name='is_done') 
+        reward = Input(shape=(1,), name='reward') 
 
         scaled_layer_states = keras.layers.Lambda(lambda x: x / 255.0)(states)
         scaled_layer_next_states = keras.layers.Lambda(lambda x: x / 255.0)(next_states)
@@ -286,51 +295,45 @@ class DeepQFactory:
             hidden_layer = scaled_layer
 
             for conv_count, kernel, stride in zip(conv_nodes, kernel_size, conv_stride):
-                hidden_layer = keras.layers.Conv2D(filters=conv_count,
+                hidden_layer = Conv2D(filters=conv_count,
                                                    kernel_size=kernel,
                                                    strides=stride,
                                                    activation='relu',
                                                    use_bias=False,
                                                    data_format='channels_last')(hidden_layer)
 
-            hidden_layer = keras.layers.Flatten()(hidden_layer)
+            hidden_layer = Flatten()(hidden_layer)
             for _ in range(hidden_layer_count):
                 hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
 
-            predictions = keras.layers.Dense(output_dimension, activation='linear', name=f'values_{idx}')(hidden_layer)
+            predictions = keras.layers.Dense(output_dimension, activation='linear', name=f'action_values_{idx}')(hidden_layer)
             networks.append(predictions)
 
         #TODO switch back optimizers and huber
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, epsilon=1.5e-4), loss=tf.keras.losses.Huber())
 
+        model_action_values, target_model_action_values = networks
+
         #with tf.device('/cpu:0'):
-        best_action = keras.layers.Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(networks[0])
+        best_action = keras.layers.Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(model_action_values)
         action_selector = keras.Model(inputs=states, outputs=best_action)
 
-        #target_best_action = keras.layers.Lambda(lambda x: K.argmax(x, axis=1))(networks[0])
-        #action_value = keras.layers.Lambda(lambda x: K.max(x, axis=1))(networks[1])
-        #action_value = keras.layers.maximum()(networks[1])
-
         def custom_loss(values, correct_values):
-            #q_prime_value = K.max(correct_values)
-            #temp = np.array(q_prime_value)
-            #temp[a]
             def loss(y_true, y_pred):
-                #0.99 *
                 return K.mean(K.square(correct_values - values), axis=-1)
-                #return K.
             return loss
 
         # TODO double Q
-        #target_action_value = keras.Model(inputs=inputs, outputs=best_action)
+        #target_action_value = keras.Model(inputs=states, outputs=best_action)
 
-        model = keras.Model(inputs=states, outputs=networks[0])
-        target = keras.Model(inputs=next_states, outputs=networks[1])
-        q_prime_value = Q_Prime_Layer(1)([networks[0], networks[1], reward, is_done])
-        test = MyLayer(output_dimension)([networks[0], action, q_prime_value])
-        trainable = keras.Model(inputs=[states, action, next_states, reward, is_done], outputs=networks[0])
+        model = keras.Model(inputs=states, outputs=model_action_values)
+        target = keras.Model(inputs=next_states, outputs=target_model_action_values)
+        # TODO
+        q_prime_value = Q_Prime_Layer(None)([model_action_values, target_model_action_values, reward, is_done])
+        test = MyLayer(output_dimension)([model_action_values, action, q_prime_value])
+        trainable = keras.Model(inputs=[states, action, next_states, reward, is_done], outputs=model_action_values)
 
-        trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(networks[0], test))
+        trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(model_action_values, test))
 
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
         return model, target, action_selector, trainable
@@ -340,7 +343,7 @@ class Q_Prime_Layer(tf.keras.layers.Layer):
 
     def __init__(self, output_dim, **kwargs):
         self.output_dim = output_dim
-        self.gamma = tf.constant(0.97)
+        self.gamma = tf.constant(0.99)
         super(Q_Prime_Layer, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -350,19 +353,20 @@ class Q_Prime_Layer(tf.keras.layers.Layer):
     def call(self, x):
         assert isinstance(x, list)
         state_action_values, next_state_action_values, reward, is_done = x
+        #print("q call")
+        #print(state_action_values.shape)
+        #print(next_state_action_values.shape)
+        ##print(reward.shape)
+        #print(is_done.shape)
         q_prime = 0.
-        #jif not is_done:
-            #q_prime = tf.gather(state_action_values, [K.argmax(next_state_action_values, axis=1)])
-            #j3q_prime = [K.max(next_state_action_values, axis=1)]
-        #tf.where(is_done, K.max(next_state_action_values, axis=1), 0.)
-
-        new_values = tf.where(is_done, tf.zeros(is_done.shape[-1]), K.max(next_state_action_values, axis=0))
-        return (new_values * self.gamma) + reward
-
-        #tf.where(is)
-
-        #q_prime = (q_prime * ) + reward
-        #return [q_prime]
+        # TODO should axis be zero?
+        squeezed_done = tf.squeeze(is_done, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
+        action_values = K.max(next_state_action_values, axis=1)
+        new_values = tf.where(squeezed_done, tf.zeros((1,)), action_values)
+        #new_values = tf.where(is_done, tf.zeros(is_done.shape[0]), K.max(next_state_action_values, axis=1))
+        #return new_values
+        squeezed_reward = tf.squeeze(reward, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
+        return (new_values * self.gamma) + squeezed_reward
 
 
 class MyLayer(tf.keras.layers.Layer):
@@ -378,73 +382,18 @@ class MyLayer(tf.keras.layers.Layer):
     def call(self, x):
         assert isinstance(x, list)
         state_action_values, action, q_prime = x
-        print(state_action_values.shape)
-        print(action.shape)
-        print(q_prime.shape)
-        #action_idxs = tf.concat([tf.range(0, action.shape[0]), action], axis=0)
-        #q_prime_idxs = tf.concat([tf.range(0, q_prime.shape[0], ), q_prime], axis=0)
-
-        #return tf.tensor_scatter_nd_update(state_action_values, action, q_prime_idxs)
-        return tf.tensor_scatter_nd_update(state_action_values, action, q_prime)
-        #delta = tf.scatter_nd(action, q_prime, [64, 780])
-        #return tf.SparseTensor(action, q_prime, state_action_values.shape)
-        #return tf.assign(state_action_values[:, [action], q_prime])
-
-        #return tf.sparse.to_dense(delta)
-
+        squeezed_action = tf.squeeze(action, axis=[1])
         #return [state_action_values]
-        action_values = tf.gather(state_action_values, action)
 
-        #return [tf.where(state_action_values !=  action_values, state_action_values, q_prime)]
-        return [state_action_values]
+        return tf.tensor_scatter_nd_update(state_action_values, squeezed_action, q_prime)
+        # TODO does printing slow down?
+        #print(state_action_values.shape)
+        #print(action.shape)
+        #print(q_prime.shape)
 
-        """
-        maskValues = tf.tile([0.0], [tf.shape(state_action_values)[0]])  # one 0 for each element in "indices"
-        mask = tf.SparseTensor([action], maskValues, tf.shape(state_action_values, out_type=tf.int64))
-        maskedInput = tf.multiply([action], tf.sparse_tensor_to_dense(mask,
-                                                                    default_value=1.0))  # set values in coordinates in "indices" to 0's, leave everything else intact
+        #return tf.tensor_scatter_nd_update(state_action_values, action, q_prime)
+        #return tf.tensor_scatter_nd_update(action, state_action_values, q_prime)
 
-        # replace elements in "indices" with "values"
-        delta = tf.SparseTensor([action], [q_prime], tf.shape(state_action_values, out_type=tf.int64))
-        outputs = tf.add(maskedInput, tf.sparse_tensor_to_dense(delta))
-        return outputs
-        """
-
-        '''
-        mask = np.array([idx == action for idx in range(4)])
-
-        idx_remove = tf.where(mask==True)[:,-1]
-        idx_keep = tf.where(mask==False)[:,-1]
-
-        values_remove = tf.tile([q_prime], [tf.shape(idx_remove)[0]])
-        values_keep = tf.gather(state_action_values[0], idx_keep)
-
-        # to create a sparse vector we still need 2d indices like [ [0,1], [0,2], [0,10] ]
-        # create vectors of 0's that we'll later stack with the actual indices
-        zeros_remove = tf.zeros_like(idx_remove)
-        zeros_keep = tf.zeros_like(idx_keep)
-
-        idx_remove = tf.stack([zeros_remove, idx_remove], axis=1)
-        idx_keep = tf.stack([zeros_keep, idx_keep], axis=1)
-
-        # now we can create a sparse matrix
-        logits_remove = tf.SparseTensor(idx_remove, values_remove, tf.shape(state_action_values, out_type=tf.int64))
-        logits_keep = tf.SparseTensor(idx_keep, values_keep, tf.shape(state_action_values, out_type=tf.int64))
-
-        # add together the two matrices (need to convert them to dense first)
-        filtered_logits = tf.add(
-            tf.sparse.to_dense(logits_remove, default_value=0.),
-            tf.sparse.to_dense(logits_keep, default_value=0.)
-        )
-
-        return [filtered_logits]
-        '''
-
-
-
-        #test = np.array(state_action_values)
-        #test[action] = q_prime
-        return [state_action_values]
 
     def compute_output_shape(self, input_shape):
         assert isinstance(input_shape, list)
