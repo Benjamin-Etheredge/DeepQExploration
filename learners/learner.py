@@ -127,16 +127,20 @@ class DeepQ:
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
-        states = np.array(sample.states)
+        #states = np.array(sample.states)
         #from PIL import Image
         #im = Image.fromarray(states[0, :, :, :3])
         #im.save("img.jpeg")
         #im = Image.fromarray(states[4, :, :, :3])
         #im.save("img2.jpeg")
-        next_states = np.array(sample.next_states)
+
+        #states, actions, next_states, rewards, is_dones = sample.training_items
+        losses = self.train.train_on_batch(sample.training_items)
+
+        #next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
-        losses = self.train.train_on_batch([states, np.array(sample.actions), next_states, np.array(sample.rewards), np.array(sample.is_dones)])
+        #losses = self.train.train_on_batch([states, np.array(sample.actions), next_states, np.array(sample.rewards), np.array(sample.is_dones)])
 
         '''
         current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager

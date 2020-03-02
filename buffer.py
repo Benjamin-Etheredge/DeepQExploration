@@ -96,8 +96,20 @@ class ReplayBuffer:
 
     @property
     def training_items(self):
+        states = []
+        actions = []
+        next_states = []
+        is_dones = []
         for item in self.buffer:
-            yield item.action, item.reward, item.isDone
+            states.append(np.stack(item.state, axis=2))
+            actions.append(item.action)
+            next_states.append(np.stack(item.next_state, axis=2))
+            is_dones.append(item.is_done)
+        return array(states), array(actions), array(next_states), array(is_dones)
+            
+
+        #for item in self.buffer:
+            #yield item.action, item.reward, item.isDone
 
     def append(self, experience):
         if self.is_full():
