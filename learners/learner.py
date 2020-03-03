@@ -134,8 +134,9 @@ class DeepQ:
         #im = Image.fromarray(states[4, :, :, :3])
         #im.save("img2.jpeg")
 
-        #states, actions, next_states, rewards, is_dones = sample.training_items
-        losses = self.train.train_on_batch(sample.training_items)
+        states, actions, next_states, rewards, is_dones = sample.training_items()
+        #losses = self.train.train_on_batch(sample.training_items)
+        #losses = self.train.train_on_batch(*sample.training_items())
 
         #next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))

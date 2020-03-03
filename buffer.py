@@ -99,17 +99,20 @@ class ReplayBuffer:
         states = []
         actions = []
         next_states = []
+        rewards = []
         is_dones = []
+        #items = [[np.stack(item.state, axis=2), item.action, np.stack(item.next_state, axis=2), item.reward, item.isDone] for item in self.buffer]
+        #items = [array(value) for value in items]
+        #return *items
         for item in self.buffer:
             states.append(np.stack(item.state, axis=2))
             actions.append(item.action)
             next_states.append(np.stack(item.next_state, axis=2))
-            is_dones.append(item.is_done)
-        return array(states), array(actions), array(next_states), array(is_dones)
-            
+            rewards.append(item.reward)
+            is_dones.append(item.isDone)
+        return array(states), array(actions), array(next_states), \
+               array(rewards), array(is_dones)
 
-        #for item in self.buffer:
-            #yield item.action, item.reward, item.isDone
 
     def append(self, experience):
         if self.is_full():
