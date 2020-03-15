@@ -39,15 +39,15 @@ class Agent:
                  verbose=0,
                  seed=None,
                  experience_creator=Experience,
-                 observation_processor=np.array,
+                 observation_processor=array,
                  window=4,
                  target_network_interval=None,
                  random_decay_end=1000000):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
-            seed = np.random.randint(0, 99999999)
-        self.np_random_state = np.random.RandomState(seed)
+            seed = random.randint(0, 99999999)
+        self.np_random_state = random.RandomState(seed)
         self.experience_creator = experience_creator
         self.observation_processor = observation_processor
         self.window = window
