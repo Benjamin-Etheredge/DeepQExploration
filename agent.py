@@ -22,6 +22,7 @@ import random
 import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
 
+from numpy import clip, stack, array, random, power
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
@@ -125,7 +126,7 @@ class Agent:
                 (1.0 - random_choice_decay_min) / random_decay_end)
                 #(1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
-            self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / self.max_episodes))
+            self.randomChoiceDecayRate = float(power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
         self.prepare_buffer()
@@ -240,7 +241,7 @@ class Agent:
                 experience = self.experience_creator(state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
-                                                     reward=np.clip(reward, -1, 1),
+                                                     reward=clip(reward, -1, 1),
                                                      is_done=is_done)
                 self.replay_buffer.append(experience)
 
