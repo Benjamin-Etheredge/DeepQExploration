@@ -1,43 +1,24 @@
 # TODO test with starting with large window and reducing size
 # TODO test with randomly removing items from deque instead of using a sliding window
-# TODO switch linear degradation to per frame instead of per game
 import time
 from datetime import datetime
 from timeit import default_timer as timer
 import sys
 
+import tensorflow.compat.v1 as tf
 from learners.learner import *
 from learner import *
 from tensorflow_core.python.keras.api._v1 import keras
-
 from copy import deepcopy
-
 import gym
-
 from scores import *
 from experience import Experience
 from buffer import ReplayBuffer, VoidBuffer
 from collections import deque
 import random
-import tensorflow.compat.v1 as tf
-tf.disable_eager_execution()
-
 from numpy import clip, stack, array, random, power
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
-# from tensorboard import summary
-# kI
-# tf.compat.v1.disable_eager_execution()  # disable eager for performance boost
-# tf.compat.v1.disable_eager_execution()  # disable eager for performance boost
-# 3tf.enable_resource_variables()
-# tf.compat.v2.dis
-# tf.python.framework_ops.disable_eager_execution() # disable eager for performance boost
-# num_threads = os.cpu_count()
-# tf.config.threading.set_inter_op_parallelism_threads(num_threads)
-# tf.config.threading.set_intra_op_parallelism_threads(num_threads)
-# tf.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
 # TODO process every 4th move
 
 class Agent:
@@ -81,15 +62,12 @@ class Agent:
         self.scoring_env.seed(self.seed())
         self.scoring_env.action_space.seed(self.seed())
         self.random_action_rate = 1.0
-        #self.scores = scorer
         self.verbose = verbose
-        #self.steps_per_game_scorer = Scores(100)
         self.early_stopping = early_stopping
         if verbose >= 1:
             env_name = self.env.unwrapped.spec.id
 
             log_dir = f"logs/{env_name}_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
-            # self.tensorboard_writer = tf.summary.create_file_writer(log_dir)
             self.tensorboard_writer = tf.summary.FileWriter(log_dir)
             tensorboard = keras.callbacks.TensorBoard(
                 log_dir=log_dir,
@@ -99,9 +77,6 @@ class Agent:
                 write_grads=True
             )
             tensorboard.set_model(self.learner.model)
-            # self.tensorboard_writer.add_graph(self.learner.model)
-            # self.tensorboard_writer.add_graph()
-        # self.tensorboard_writer.set_as_default()
 
         # Easily Adjusted hyperparameters
         if reward_threshold is None:
@@ -117,14 +92,12 @@ class Agent:
             self.target_network_updating_interval = target_network_interval
         self.sample_size = sample_size
         self.log_triggering_threshold = max_episode_steps * 10  # log every 20 max game lengths
-        # self.randomChoiceDecayRate = randomChoiceDecayRate
         self.decay_type = decay_type
         if random_choice_decay_min == 0:
             random_choice_decay_min = 0.0000000000000001
         if self.decay_type == 'linear':
             self.randomChoiceDecayRate = float(
                 (1.0 - random_choice_decay_min) / random_decay_end)
-                #(1.0 - random_choice_decay_min) / (self.max_episodes - (self.max_episodes * .9)))
         else:
             self.randomChoiceDecayRate = float(power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
@@ -182,7 +155,6 @@ class Agent:
         return iteration % self.log_triggering_threshold == 0
 
     def log(self):
-        # TODO paramertize optimizer
         self.learner.log()
         self.replay_buffer.log()
 
@@ -257,27 +229,18 @@ class Agent:
                                              step=game_count)
                         self.update_target_model()
 
-                #if verbose > 2 and self.should_log(total_steps):
-                    #self.log_play(game_count, iteration_time, start_time, step_limit, total_steps, verbose)
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
-            #print(moves_per_second)
             self.tensorboard_log(name="move_per_second_per_game", data=moves_per_second, step=game_count)
             self.tensorboard_log(name="off_policy_game_score_per_game", data=total_reward, step=game_count)
             self.tensorboard_log(name="off_policy_game_score_per_frames", data=total_reward, step=total_steps)
-            #self.scores.append(total_reward)
-            #self.steps_per_game_scorer.append(game_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
-            #self.decay_epsilon()
             self.tensorboard_log(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
             self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
-            #buffer_size_in_GBs = self.replay_buffer.size
-            #self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
-            #gc.collect()
 
         assert total_steps > 0
         return total_steps
