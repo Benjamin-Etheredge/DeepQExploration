@@ -19,9 +19,15 @@ class VoidBuffer:
 
     def append(self, experience):
         pass
+
+def rgb2gray(rgb):
+    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
+
+class AtariExperience():
+
     @staticmethod
     def gray_scale(img):
-        return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)  # TODO reduce 3 -> 2
+        return np.dot(array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
 
 
 def clipped_atari(reward, *args, **kwargs):
