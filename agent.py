@@ -271,21 +271,6 @@ class Agent:
             #buffer_size_in_GBs = self.replay_buffer.size
             #self.verbose_1_check(name="buffer_size_in_GBs", data=buffer_size_in_GBs, step=game_count)
             #gc.collect()
-            '''
-            if game_count % 100 == 0 or game_count == 0 or game_count == 1:
-                #print(gc.collect())
-                objgraph.show_refs([self], filename="agent.png")
-                objgraph.show_refs([self.replay_buffer], filename="replay_buffer.png")
-                objgraph.show_refs([self.learner], filename="learner.png")
-                h = hpy()
-                print(h.heap())
-                snapshot = tracemalloc.take_snapshot()
-                top_stats = snapshot.statistics('lineno')
-
-                print("[ Top 10 ]")
-                for stat in top_stats[:10]:
-                    print(stat)
-            '''
 
         assert total_steps > 0
         return total_steps
