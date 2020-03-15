@@ -108,7 +108,7 @@ class Agent:
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
         self.max_episodes = max_episodes
-        self.on_policy_check_interval = min(max_episodes // 10, 1000)
+        self.on_policy_check_interval = min(max_episodes // 10, 250)
 
         if target_network_interval is None:
             self.target_network_updating_interval = int(self.max_episode_steps * 0.5)
