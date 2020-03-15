@@ -128,6 +128,7 @@ class Agent:
             self.randomChoiceDecayRate = float(np.power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
+        self.prepare_buffer()
 
     def seed(self):
         seed = self.np_random_state.randint(0, 9999)
@@ -195,8 +196,6 @@ class Agent:
             self.play_game(self.replay_buffer)
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
-
-        self.prepare_buffer()
 
         game_count = 0
         total_steps = 0
