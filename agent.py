@@ -319,18 +319,19 @@ class Agent:
             action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
             # TODO build better policy evaluator
             step, reward, done, _ = self.scoring_env.step(action_choice)
+            total_reward += reward
             step_count += 1
             step = self.observation_processor(step)
             step_buffer.append(step)
             list_buffer = list(step_buffer)
-            if buffer is not None:
-                experience = self.experience_creator(state=list_buffer[:-1],
+
+            experience = self.experience_creator(
+                state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
-                                                     reward=np.clip(reward, -1, 1),
+                reward=clip(reward, -1, 1),
                                                      is_done=done)
-                self.replay_buffer.append(experience)
-            total_reward += reward
+            buffer.append(experience)
         return total_reward
 
     def score_model(self, games=150, buffer=None, verbose: int = 0):
