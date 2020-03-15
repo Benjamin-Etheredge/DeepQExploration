@@ -116,8 +116,8 @@ class Agent:
             summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
             self.tensorboard_writer.add_summary(summary, step)
 
-    def should_select_random_action(self):
-        return random.uniform(0, 1) < self.random_action_rate
+    def should_select_random_action(self, random_choice_rate):
+        return random.uniform(0, 1) < random_choice_rate
 
     def should_update_learner(self):
         return self.replay_buffer.is_ready()
@@ -130,7 +130,9 @@ class Agent:
         return self.replay_buffer.is_ready()
 
     def get_next_action(self, state, random_choice_rate=None):
-        if self.should_select_random_action():
+        if random_choice_rate is None:
+            random_choice_rate = self.random_action_rate
+        if self.should_select_random_action(random_choice_rate):
             return self.env.action_space.sample()
         else:
             return self.learner.get_next_action(state)
@@ -166,7 +168,7 @@ class Agent:
 
     def prepare_buffer(self):
         while not self.replay_buffer.is_ready():
-            self.play_game(self.replay_buffer)
+            self.play_game(self.replay_buffer, random_rate=1.0)
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
@@ -254,9 +256,7 @@ class Agent:
     def save_model(self, file_name):
         pass
 
-    # TODO use void learner to combine methods
-    # TODO switch to np.clip(x, -1, 1)
-    def play_game(self, buffer=VoidBuffer(), verbose: int = 0):
+    def play_game(self, buffer=VoidBuffer(), random_rate=0.0, verbose: int = 0):
         total_reward = 0
         self.scoring_env.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
