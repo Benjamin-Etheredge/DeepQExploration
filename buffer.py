@@ -51,13 +51,14 @@ class ReplayBuffer:
             start_length = max_length
         self.start_length = start_length
 
-        # TODO deque may be slow for sampling
-
+        # Switched form deque due to slow indexing
         if buffer is not None:
-            self.buffer = deque([], len(buffer))
-            self.buffer.extend(buffer)
+            #self.buffer = deque([], len(buffer))
+            #self.buffer.extend(buffer)
+            self.buffer = list(buffer)
         else:
-            self.buffer = deque([], self.max_length)
+            #self.buffer = deque([], self.max_length)
+            self.buffer = []
 
     @property
     def experience_count(self):
@@ -67,7 +68,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def dequeue(self):
-        pass
+        self.buffer.pop(0)
 
     def prep(self, first_state):
         pass
