@@ -187,7 +187,7 @@ class Agent:
             game_count += 1
 
             # Start a new game
-            # self.env.seed(self.seed())
+            self.env.seed(self.seed())
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
             step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
