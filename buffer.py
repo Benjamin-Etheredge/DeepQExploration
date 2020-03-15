@@ -27,6 +27,9 @@ class AtariExperience():
 
     @staticmethod
     def gray_scale(img):
+        #return mean(array(img[::2, ::2]), axis=2).astype(np.uint8) # TODO why does this leak memory?
+        #return np.dot(array(img)[...,:3], [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
+        #return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)
         return np.dot(array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
 
 
