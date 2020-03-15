@@ -14,8 +14,11 @@ class VoidBuffer:
     def __init__(self):
         pass
 
-class AtariExperience(Experience):
+    def prep(self, first_state):
+        pass
 
+    def append(self, experience):
+        pass
     @staticmethod
     def gray_scale(img):
         return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)  # TODO reduce 3 -> 2
