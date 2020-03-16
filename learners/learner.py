@@ -19,15 +19,13 @@ from buffer import ReplayBuffer
 #tf.disable_eager_execution()
 #tf.disable_eager_execution()
 import tensorflow as tf
-#tf.compat.v1.disable_eager_execution()
+tf.compat.v1.disable_eager_execution()
 
 
 #import tensorflow.compat.v1.keras.backend as K
 import tensorflow.keras.backend as K
-#from tensorflow.compat.v1.keras.layers import Dense, Conv2D, Lambda, Flatten
-#from tensorflow.compat.v1.keras import Input
-from tensorflow.keras.layers import Dense, Conv2D, Lambda, Flatten
-from tensorflow.keras import Input
+from tensorflow.keras.layers import Dense, Conv2D, Lambda, Flatten, concatenate
+from tensorflow.keras import Input, Model
 #dtype = 'float16'
 #K.set_floatx(dtype)
 #K.set_epsilon(1e-4)
@@ -240,11 +238,11 @@ class DeepQFactory:
         inputs = keras.Input(shape=(input_dimension,))
         hidden_layer = inputs
         for _ in range(hidden_layer_count):
-            hidden_layer = keras.layers.Dense(nodes_per_layer, activation='relu')(hidden_layer)
+            hidden_layer = Dense(nodes_per_layer, activation='relu')(hidden_layer)
             # TODO explore batchnorm in RL.
             #hidden_layer = keras.layers.BatchNormalization()(hidden_layer)
-        predictions = keras.layers.Dense(output_dimension, activation='linear')(hidden_layer)
-        model = keras.Model(inputs=inputs, outputs=predictions)
+        predictions = Dense(output_dimension, activation='linear')(hidden_layer)
+        model = Model(inputs=inputs, outputs=predictions)
         # TODO do more testing on MSE vs Huber
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, epsilon=1.5e-4), loss=tf.keras.losses.Huber())
         model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=tf.keras.losses.Huber())
