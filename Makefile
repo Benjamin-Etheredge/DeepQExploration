@@ -12,8 +12,9 @@ build: Dockerfile
 
 bash: build
 	docker run --rm -v $(DIR):/app -v $(DIR)/logs:/logs $(IMAGE_NAME) bash
+
 brick: build
-	docker run --rm -v $(DIR):/app $(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_Breakout
+	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_Breakout
 
 space:
-	docker-compose run --rm agent python -m unittest test_agent.TestAgent.test_SpaceInvaders_v0
+	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_SpaceInvaders_v4
