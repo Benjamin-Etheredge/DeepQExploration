@@ -30,13 +30,14 @@ class TestAgent(TestCase):
         DeepQFactory.create_clipped_double_duel_deep_q
     ]
 
-    def test_play(self, environment, max_episodes, learner_creator, *args, **kwargs):
-        score = self.play(environment, max_episodes, learner_creator(), *args, **kwargs)
+    def test_play(self, environment, learner_creator, *args, **kwargs):
+        score = self.play(environment, learner_creator(), *args, **kwargs)
         _, _, reward_threshold = self.get_env_info(environment)
         with self.subTest(f"{environment}_{learner_creator().name}"):
             self.assertGreaterEqual(score, reward_threshold)
 
-    def play(self, name, max_episodes, learner,
+    def play(self, name, learner,
+              max_episodes=1000000,
               nodes_per_layer=128,
               layer_count=2,
               learning_rate=0.001,
@@ -48,6 +49,8 @@ class TestAgent(TestCase):
               data_func=None,
               window=4,
               target_network_interval=None,
+              start_length=200000,
+              end_length=1000000,
               random_decay_end=1000000,
               *args, **kwargs):
 
@@ -82,19 +85,13 @@ class TestAgent(TestCase):
                             layer_count=layer_count,
                             gamma=gamma, *args, **kwargs)
 
-        #start_length = min(int(max_episodes/10) * max_episode_steps, 500)
-        #start_length = min(int(max_episodes) * max_episode_steps, 10000000)
-        start_length = 200000
-        #start_length = 1000000
-        #max_possible_step_count = start_length * 1
-        max_possible_step_count = start_length * 5
         # TODO account for possible extra space from scoring
 
         agent = Agent(
             learner=learner,
             scorer=VoidScores(),
             sample_size=sample_size,
-            replay_buffer=buffer_creator(max_length=max_possible_step_count, start_length=start_length),
+            replay_buffer=buffer_creator(max_length=end_length, start_length=start_length),
             environment=env,
             reward_threshold=reward_threshold,
             random_choice_decay_min=random_choice_min_rate,
