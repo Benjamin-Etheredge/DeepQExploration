@@ -289,6 +289,7 @@ class Agent:
             buffer.append(experience)
         return total_reward
 
-    def score_model(self, games=150, buffer=None, verbose: int = 0):
-        scores = [self.play_game(buffer, verbose) for _ in range(games)]
-        return np.mean(scores)
+    def score_model(self, games=150, verbose: int = 0):
+        scores = [self.play_game(verbose=verbose) for _ in range(games)]
+        # Using max to be similar to other publications
+        return max(scores)
