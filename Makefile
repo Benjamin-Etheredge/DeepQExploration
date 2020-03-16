@@ -16,5 +16,8 @@ bash: build
 brick: build
 	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_Breakout
 
+profile: build
+	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m cProfile -o breakout.prof test_agent.py
+
 space:
 	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_SpaceInvaders_v4
