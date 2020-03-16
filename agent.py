@@ -192,7 +192,7 @@ class Agent:
             step = self.observation_processor(self.env.reset())
             step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
             list_buffer = list(step_buffer)
-            self.replay_buffer.prep(step)
+            self.replay_buffer.prep(step) # TODO is prep needed?
 
             is_done = False
             total_reward = 0
