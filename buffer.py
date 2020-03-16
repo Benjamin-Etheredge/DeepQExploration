@@ -118,9 +118,9 @@ class ReplayBuffer:
         #items = [array(value) for value in items]
         #return *items
         for item in self.buffer:
-            states.append(np.stack(item.state, axis=2))
+            states.append(item.state)
             actions.append(item.action)
-            next_states.append(np.stack(item.next_state, axis=2))
+            next_states.append(item.next_state)
             rewards.append(item.reward)
             is_dones.append(item.isDone)
         return array(states), array(actions), array(next_states), \
@@ -143,6 +143,8 @@ class ReplayBuffer:
         sample_idxs = random.sample(range(len(self.buffer)), sample_count)
         samples = [self.buffer[idx] for idx in sample_idxs]
         return sample_idxs, ReplayBuffer(sample_count, buffer=samples)
+        #samples = np.random.choice(self.buffer, size=sample_count, replace=False)
+        #return None, ReplayBuffer(sample_count, buffer=samples)
 
     def update(self, indexes, loss):
         pass
@@ -163,3 +165,16 @@ class ReplayBuffer:
                 replace = random.randint(0, numberOfSamples - 1)
                 sample[replace] = experience
         return sample
+
+    # https://medium.com/ibm-watson/incredibly-fast-random-sampling-in-python-baf154bd836a
+    def multidimensional_shifting(num_samples, sample_size, elements, probabilities=None):
+        if probabilities is None:
+            probabilities = np.tile(1/num_samples, (num_samples, 1))
+        # replicate probabilities as many times as `num_samples`
+        replicated_probabilities = np.tile(probabilities, (num_samples, 1))
+        # get random shifting numbers & scale them correctly
+        random_shifts = np.random.random(replicated_probabilities.shape)
+        random_shifts /= random_shifts.sum(axis=1)[:, np.newaxis]
+        # shift by numbers & find largest (by finding the smallest of the negative)
+        shifted_probabilities = random_shifts - replicated_probabilities
+        return np.argpartition(shifted_probabilities, sample_size, axis=1)[:, :sample_size]
