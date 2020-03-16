@@ -155,6 +155,23 @@ class TestAgent(TestCase):
     def test_Breakout(self):
         self.test_atari("Breakout-v4")
 
+    def test_profile_Space(self):
+        self.test_atari("SpaceInvaders-v4", 
+                        start_length=1000000,
+                        end_length=1000000,
+                        random_decay_end=100000, 
+                        target_network_interval=10000, 
+                        max_episodes=400)
+
+
+    def test_profile_Breakout(self):
+        self.test_atari("Breakout-v4", 
+                        start_length=100000,
+                        end_length=100000,
+                        random_decay_end=100000, 
+                        target_network_interval=10000, 
+                        max_episodes=250)
+
     def test_Breakout_v4(self):
         self.test_atari("Breakout-v4")
         #self.test_atari("Breakout-v0")
@@ -251,6 +268,6 @@ if __name__ == '__main__':
     #suite.addTest(TestAgent.test_SpaceInvaders_v0)
     #unittest.TextTestRunner().run(suite)
     suite = unittest.TestSuite()
-    suite.addTest(TestAgent("test_SpaceInvaders_v0"))
+    suite.addTest(TestAgent("test_profile_Space"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
