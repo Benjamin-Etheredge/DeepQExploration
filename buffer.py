@@ -79,35 +79,6 @@ class ReplayBuffer:
     def is_ready(self):
         return self.experience_count >= self.start_length
 
-    @property
-    def states(self):
-        return [np.stack(item.state, axis=2) for item in self.buffer]
-        # return [item.state for item in self.buffer]
-
-    @property
-    def actions(self):
-        return [item.action for item in self.buffer]
-        #for item in self.buffer:
-            #yield item.action
-
-    @property
-    def next_states(self):
-        # No reason to use a generator here as keras would require it to be converted to a list beforehand
-        return [np.stack(item.next_state, axis=2) for item in self.buffer]
-
-    @property
-    def rewards(self):
-        return [item.reward for item in self.buffer]
-        #for item in self.buffer:
-            #yield item.reward
-
-    @property
-    def is_dones(self):
-        return [item.isDone for item in self.buffer]
-        #$for item in self.buffer:
-            #$yield item.isDone
-
-    @property
     def training_items(self):
         states = []
         actions = []
