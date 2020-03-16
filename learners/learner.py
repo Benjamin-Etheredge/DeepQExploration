@@ -11,18 +11,16 @@ from tensorflow import keras
 
 
 from buffer import ReplayBuffer
+import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 #os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
-#import tensorflow.compat.v1 as tf
-#tf.disable_eager_execution()
-#tf.disable_eager_execution()
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 
+#from numba import jit
 
-#import tensorflow.compat.v1.keras.backend as K
+
 import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Dense, Conv2D, Lambda, Flatten, concatenate
 from tensorflow.keras import Input, Model
@@ -43,6 +41,10 @@ from tensorflow.compat.v1 import InteractiveSession
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
+
+#from tensorflow.keras.mixed_precision import experimental as mixed_precision
+#policy = mixed_precision.Policy('mixed_float16')
+#policy = mixed_precision.set_policy(policy)
 
 #writer = tf.summary.create_file_writer("logs")
 #config = tf.ConfigProto()
@@ -98,6 +100,7 @@ class DeepQ:
         return self.name
 
     #@profile
+    #@jit
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
@@ -106,6 +109,7 @@ class DeepQ:
         pass
 
     #@profile
+    #@jit
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
         np_state = np.array(state)
@@ -122,6 +126,7 @@ class DeepQ:
         # return target_prime_action_values
 
     #@profile
+    #@jit
     def update(self, sample: ReplayBuffer):
         # TODO refactor
         #TODO combine model predections
