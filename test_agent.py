@@ -51,7 +51,7 @@ class TestAgent(TestCase):
               target_network_interval=None,
               start_length=200000,
               end_length=1000000,
-              random_decay_end=1000000,
+              random_decay_end=4000000, # Decay rate used for DQN in Rainbow.
               *args, **kwargs):
 
         # Seed random variables
