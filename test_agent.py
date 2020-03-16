@@ -2,6 +2,7 @@
 from unittest import TestCase
 from multiprocessing import Process
 
+# TODO cleanup imports
 from agent import *
 from buffer import *
 from learners.learner import DeepQFactory
