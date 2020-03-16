@@ -200,7 +200,7 @@ class Agent:
             game_start_time = time.time()
 
             while not is_done:
-                if verbose > 2:
+                if verbose > 3:
                     self.env.render()
                 action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
