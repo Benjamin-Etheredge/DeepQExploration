@@ -110,12 +110,12 @@ class DeepQ:
     #@profile
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
-        if len(state.shape) > 1:
-            state = state[np.newaxis, :, :, :]
+        np_state = np.array(state)
+        #print(np_state.shape)
+        if len(np_state.shape) > 1:
+            np_state = np_state[:, np.newaxis, :, :]
 
-        #action_values = self.model.predict_on_batch(state)[0]
-        #return np.argmax(action_values)
-        return self.action_selector.predict_on_batch(state)[0]
+        return self.action_selector.predict_on_batch([np_state[0], np_state[1], np_state[2], np_state[3]])[0]
 
         # TODO test without target
         # statePrimes = sample.nextStates
@@ -141,7 +141,10 @@ class DeepQ:
         #next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
-        #losses = self.train.train_on_batch([states, np.array(sample.actions), next_states, np.array(sample.rewards), np.array(sample.is_dones)])
+        losses = self.train.train_on_batch([states[:, 0, :], states[:, 1, :], states[:, 2, :], states[:, 3, :],
+                                            np.array(actions),
+                                            next_states[:, 0, :], next_states[:, 1, :], next_states[:, 2, :], next_states[:, 3, :],
+                                            np.array(rewards), np.array(is_dones)])
 
         '''
         current_all_action_values = self.model.predict_on_batch(states)  # TODO invistaigate explictly make array due to TF eager
@@ -224,10 +227,10 @@ class DeepQFactory:
 
     @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
-        return DeepQ(name="Atari_Clipped_Double_Duel_DeepQ",
+        return DeepQ(name="Atari_Testing_Arch",
                      #q_prime_function=DeepQFactory.vanilla_q_prime,
                      q_prime_function=DeepQFactory.double_deepq_q_prime,
-                     build_model_function=DeepQFactory.vanilla_conv_build_model, *args, **kwargs)
+                     build_model_function=DeepQFactory.vanilla_conv_build_model_raw, *args, **kwargs)
 
     #@static create_atari()
 
@@ -281,14 +284,16 @@ class DeepQFactory:
 
     # Different Model Construction Methods.
     @staticmethod
-    def vanilla_conv_build_model(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
+    def vanilla_conv_build_model_raw(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
                                  conv_nodes, kernel_size, conv_stride):
 
-        print('building model')
-        input_dimensions = (int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2))), input_dimensions[2]
+        input_dimensions = tuple(((int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2)))))
+        state_frames = [Input(shape=input_dimensions, name=f"state_frame_{idx}")  for idx in range(4)]
+        states = Lambda(lambda x: tf.stack(x, axis=-1))(state_frames)
 
-        states = Input(shape=tuple(input_dimensions), name='states') 
-        next_states = Input(shape=tuple(input_dimensions), name='next_states') 
+        next_state_frames = [Input(shape=input_dimensions, name=f"next_state_frame_{i}") for i in range(4)]
+        next_states = Lambda(lambda x: tf.stack(x, axis=-1))(next_state_frames)
+
         action = Input(shape=(1,), dtype=tf.int32, name='action') 
         is_done = Input(shape=(1,), dtype=tf.bool, name='is_done') 
         reward = Input(shape=(1,), name='reward') 
@@ -320,25 +325,38 @@ class DeepQFactory:
         model_action_values, target_model_action_values = networks
 
         #with tf.device('/cpu:0'):
-        best_action = keras.layers.Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(model_action_values)
-        action_selector = keras.Model(inputs=states, outputs=best_action)
+        best_action = Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(model_action_values)
+        action_selector = Model(inputs=state_frames, outputs=best_action)
 
         def custom_loss(values, correct_values):
             def loss(y_true, y_pred):
                 return K.mean(K.square(correct_values - values), axis=-1)
             return loss
 
+        def custom_huber_loss(y_pred, y_true):
+            def huber_loss(_1, _2, clip_delta=1.0):
+                error = y_true - y_pred
+                cond  = tf.keras.backend.abs(error) < clip_delta
+
+                squared_loss = 0.5 * tf.keras.backend.square(error)
+                linear_loss  = clip_delta * (tf.keras.backend.abs(error) - 0.5 * clip_delta)
+
+                return tf.where(cond, squared_loss, linear_loss)
+            return huber_loss
+
         # TODO double Q
         #target_action_value = keras.Model(inputs=states, outputs=best_action)
 
-        model = keras.Model(inputs=states, outputs=model_action_values)
-        target = keras.Model(inputs=next_states, outputs=target_model_action_values)
+        model = keras.Model(inputs=state_frames, outputs=model_action_values)
+
+        target = keras.Model(inputs=next_state_frames, outputs=target_model_action_values)
         # TODO
         q_prime_value = Q_Prime_Layer(None)([model_action_values, target_model_action_values, reward, is_done])
         test = MyLayer(output_dimension)([model_action_values, action, q_prime_value])
-        trainable = keras.Model(inputs=[states, action, next_states, reward, is_done], outputs=model_action_values)
+        trainable = keras.Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=model_action_values)
 
-        trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(model_action_values, test))
+        #trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(model_action_values, test))
+        trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_huber_loss(model_action_values, test))
 
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
         return model, target, action_selector, trainable
@@ -367,7 +385,8 @@ class Q_Prime_Layer(tf.keras.layers.Layer):
         # TODO should axis be zero?
         squeezed_done = tf.squeeze(is_done, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
         action_values = K.max(next_state_action_values, axis=1)
-        new_values = tf.where(squeezed_done, tf.zeros((1,)), action_values)
+        zeroes = tf.zeros((1,))
+        new_values = tf.where(squeezed_done, zeroes, action_values)
         #new_values = tf.where(is_done, tf.zeros(is_done.shape[0]), K.max(next_state_action_values, axis=1))
         #return new_values
         squeezed_reward = tf.squeeze(reward, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1

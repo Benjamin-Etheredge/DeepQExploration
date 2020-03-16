@@ -202,7 +202,7 @@ class Agent:
             while not is_done:
                 if verbose > 3:
                     self.env.render()
-                action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
+                action_choice = self.get_next_action(list_buffer[1:])
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
@@ -270,8 +270,7 @@ class Agent:
             if verbose > 3:
                 self.scoring_env.render()
             # TODO convert step_buffer to longer form and make it my window....
-            # TODO but it probably won't make a huge difference since the np.arrays take way more space            action_choice = self.getNextAction(np.stack(list_buffer[1:], axis=2))
-            action_choice = self.get_next_action(np.stack(list_buffer[1:], axis=2))
+            action_choice = self.get_next_action(list_buffer[1:], random_rate)
             # TODO build better policy evaluator
             step, reward, done, _ = self.scoring_env.step(action_choice)
             total_reward += reward
