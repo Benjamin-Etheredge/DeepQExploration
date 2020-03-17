@@ -102,7 +102,6 @@ class ReplayBuffer:
         if self.is_full():
             self.dequeue()
         self.buffer.append(experience)
-        del experience
 
     def sample(self, sample_size):
         # return self.reservoirSampling(numberOfSamples)
