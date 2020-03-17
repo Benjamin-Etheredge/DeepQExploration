@@ -6,6 +6,7 @@ from multiprocessing import Process
 from agent import *
 from buffer import *
 from learners.learner import DeepQFactory
+import numpy as np
 
 
 class TestAgent(TestCase):
