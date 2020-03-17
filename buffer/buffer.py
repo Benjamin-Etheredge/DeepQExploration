@@ -10,16 +10,6 @@ from numpy import mean, array
 from experience import Experience
 
 
-class VoidBuffer:
-    def __init__(self):
-        pass
-
-    def prep(self, first_state):
-        pass
-
-    def append(self, experience):
-        pass
-
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 

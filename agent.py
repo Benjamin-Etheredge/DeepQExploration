@@ -5,9 +5,8 @@ from datetime import datetime
 from timeit import default_timer as timer
 import sys
 
-import tensorflow.compat.v1 as tf
-from learners.learner import *
-from learner import *
+#from learners import *
+from learners import DeepQ
 from tensorflow_core.python.keras.api._v1 import keras
 from copy import deepcopy
 import gym
@@ -18,6 +17,7 @@ from collections import deque
 import random
 from numpy import clip, stack, array, random, power
 import tensorflow.compat.v1 as tf # this must go after due to FileWriter. TODO cleanup
+tf.disable_eager_execution()
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 # TODO process every 4th move

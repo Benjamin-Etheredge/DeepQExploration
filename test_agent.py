@@ -5,7 +5,7 @@ from multiprocessing import Process
 # TODO cleanup imports
 from agent import *
 from buffer import *
-from learners.learner import DeepQFactory
+from learners import DeepQFactory
 import numpy as np
 
 

@@ -1,5 +1,4 @@
 class Experience:
-    MEMORY_SIZE = None
 
     def __init__(self, state, action, next_state, reward, is_done):
         self._state = state
