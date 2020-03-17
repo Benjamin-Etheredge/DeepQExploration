@@ -183,7 +183,7 @@ class Agent:
                 # on_policy_score = np.mean([self.play_game(random_rate=0.0) for _ in range(4)])
                 on_policy_score = max([self.play_game(random_rate=0.0) for _ in range(10)])
                 self.tensorboard_log(name="on_policy_score_per_game", data=on_policy_score, step=game_count)
-                self.tensorboard_log(name="on_policy_score_per_score", data=on_policy_score, step=total_steps)
+                self.tensorboard_log(name="on_policy_score_per_frames", data=on_policy_score, step=total_steps)
 
             game_count += 1
 
