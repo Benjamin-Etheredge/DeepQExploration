@@ -115,7 +115,7 @@ class TestAgent(TestCase):
             target_network_interval=target_network_interval,
             random_decay_end=random_decay_end,
             name_prefix=name_prefix)
-        agent.play(max_episodes * max_episode_steps, verbose=0)
+        score = agent.play(max_episodes * max_episode_steps, verbose=0)
         #score = agent.score_model(100, verbose=0)
 
         #self.assertGreaterEqual(score, reward_threshold)
