@@ -44,6 +44,7 @@ class TestAgent(TestCase):
             self.assertGreaterEqual(score, reward_threshold)
 
     def play(self, name, learner,
+              name_prefix="",
               max_episodes=1000000,
               nodes_per_layer=128,
               layer_count=2,
@@ -111,7 +112,7 @@ class TestAgent(TestCase):
             observation_processor=data_func,
             window=window,
             target_network_interval=target_network_interval,
-            random_decay_end=random_decay_end)
+            random_decay_end=random_decay_end,
         agent.play(max_episodes * max_episode_steps, verbose=0)
         #score = agent.score_model(100, verbose=0)
 
@@ -132,7 +133,7 @@ class TestAgent(TestCase):
         "SpaceInvaders-v0"
     ]
 
-    def test_atari(self, environment_name, *args, **kwargs):
+    def test_atari(self, environment_name, name_prefix="", *args, **kwargs):
         self.test_play(
             environment=environment_name,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,

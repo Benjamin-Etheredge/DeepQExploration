@@ -62,7 +62,7 @@ class Agent:
                  observation_processor=array,
                  window=4,
                  target_network_interval=None,
-                 random_decay_end=1000000):
+                 name_prefix=""):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
@@ -89,7 +89,7 @@ class Agent:
         if verbose >= 1:
             env_name = self.env.unwrapped.spec.id
 
-            log_dir = f"logs/{env_name}_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            log_dir = f"logs/{name_prefix}{env_name}_{learner.name}_" + datetime.now().strftime("%Y%m%d-%H%M%S")
             self.tensorboard_writer = tf.summary.FileWriter(log_dir)
             tensorboard = keras.callbacks.TensorBoard(
                 log_dir=log_dir,
