@@ -13,6 +13,9 @@ import tensorflow as tf
 tf.random.set_seed(4)
 import random
 random.seed(4)
+
+from numpy import clip, stack, array, power
+
 #from learners import *
 from learners import DeepQ
 from tensorflow_core.python.keras.api._v1 import keras
@@ -139,7 +142,7 @@ class Agent:
             self.tensorboard_writer.add_summary(summary, step)
 
     def should_select_random_action(self, random_choice_rate):
-        return random.uniform(0, 1) < random_choice_rate
+        return np.random.uniform(0, 1) < random_choice_rate
 
     def should_update_learner(self):
         return self.replay_buffer.is_ready()
