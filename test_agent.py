@@ -99,7 +99,6 @@ class TestAgent(TestCase):
 
         agent = Agent(
             learner=learner,
-            scorer=VoidScores(),
             sample_size=sample_size,
             replay_buffer=buffer_creator(max_length=end_length, start_length=start_length),
             environment=env,
