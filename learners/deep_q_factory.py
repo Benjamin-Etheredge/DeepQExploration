@@ -1,3 +1,5 @@
+import os
+os.environ["PYTHONHASHSEED"] = "0"
 from tensorflow.keras.backend import argmax, mean, square
 
 import tensorflow.keras.backend as K
