@@ -21,7 +21,7 @@ from learners import DeepQ
 from tensorflow_core.python.keras.api._v1 import keras
 from copy import deepcopy
 import gym
-from scores import *
+#from scores import *
 from experience import Experience
 from buffer import ReplayBuffer, VoidBuffer
 from collections import deque
