@@ -40,7 +40,6 @@ if gpus:
 import tensorflow.compat.v1 as tf # this must go after due to FileWriter. TODO cleanup
 tf.disable_eager_execution()
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 # TODO process every 4th move
 
 class Agent:
