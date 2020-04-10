@@ -1,10 +1,13 @@
 # TODO note, total steps does not currenlty reflect the strating buffer prep
 from unittest import TestCase
 from multiprocessing import Process
+import time
 
 # TODO cleanup imports
-from agent import *
-from buffer import *
+import gym
+from agent import Agent
+from buffer import ReplayBuffer, AtariExperience
+from experience import Experience
 from learners import DeepQFactory
 import random
 random.seed()
