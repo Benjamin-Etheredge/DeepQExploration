@@ -235,6 +235,8 @@ class Agent:
             game_steps = 0
             game_start_time = time.time()
 
+            # TODO for environments that reach the step limit, must specially handle case as not terminal
+            # e.g. reaching the step limit should not have Q Prime set equal to 0.
             while not is_done:
                 if verbose > 3:
                     self.env.render()
@@ -331,6 +333,7 @@ class Agent:
             if verbose > 3:
                 self.scoring_env.render()
             # TODO convert step_buffer to longer form and make it my window....
+            # TODO but it probably won't make a huge difference since the np.arrays take way more space
             action_choice = self.get_next_action(list_buffer[1:], random_rate)
             # TODO build better policy evaluator
             step, reward, done, info = self.scoring_env.step(action_choice)
