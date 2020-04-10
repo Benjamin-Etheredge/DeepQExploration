@@ -65,8 +65,8 @@ class TestAgent(TestCase):
               *args, **kwargs):
 
         # Seed random variables
-        np.random.seed(4)
-        random.seed(4)  # TODO May not be needed
+        #np.random.seed(4)
+        #random.seed(4)  # TODO May not be needed
 
         env_name, max_episode_steps, reward_threshold = self.get_env_info(name)
         env = gym.make(env_name)
