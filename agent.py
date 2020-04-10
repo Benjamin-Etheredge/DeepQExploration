@@ -4,6 +4,8 @@ import time
 from datetime import datetime
 from timeit import default_timer as timer
 import sys
+import os
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import numpy as np
 np.random.seed(4)
