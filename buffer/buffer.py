@@ -1,5 +1,4 @@
 from collections import deque
-import random
 
 import numpy as np
 np.random.seed(4)
@@ -88,8 +87,8 @@ class ReplayBuffer:
             next_states.append(item.next_state)
             rewards.append(item.reward)
             is_dones.append(item.isDone)
-        return array(states), array(actions), array(next_states), \
-               array(rewards), array(is_dones)
+        return np.array(states), np.array(actions), np.array(next_states), \
+               np.array(rewards), np.array(is_dones)
 
 
     def append(self, experience):
@@ -125,8 +124,8 @@ class ReplayBuffer:
         for idx, experience in enumerate(self.buffer):
             if idx < numberOfSamples:
                 sample.append(experience)
-            elif idx >= numberOfSamples and random.random() < numberOfSamples / float(idx + 1):
-                replace = random.randint(0, numberOfSamples - 1)
+            elif idx >= numberOfSamples and np.random.random() < numberOfSamples / float(idx + 1):
+                replace = np.random.randint(0, numberOfSamples - 1)
                 sample[replace] = experience
         return sample
 
