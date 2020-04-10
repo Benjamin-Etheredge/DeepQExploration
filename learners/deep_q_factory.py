@@ -127,52 +127,123 @@ class DeepQFactory:
 
     # Different Model Construction Methods.
     @staticmethod
-    def vanilla_conv_build_model_raw(input_dimensions, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate,
-                                 conv_nodes, kernel_size, conv_stride):
+    def vanilla_conv_build_model_raw(
+            input_dimensions, 
+            output_dimension, 
+            nodes_per_layer, 
+            hidden_layer_count, 
+            learning_rate,
+            conv_nodes,
+            kernel_size,
+            conv_stride,
+            clip_reward=True,
+            activation_name='relu',
+            window=4,
+            double_deep_q=False,
+            clipped_double_deep_q=False,
+            is_dueling=False):
 
         input_dimensions = tuple(((int(round(input_dimensions[0]/2))), int(round((input_dimensions[1]/2)))))
-        state_frames = [Input(shape=input_dimensions, name=f"state_frame_{idx}")  for idx in range(4)]
-        states = Lambda(lambda x: tf.stack(x, axis=-1))(state_frames)
+        state_frames = [Input(shape=input_dimensions, name=f"state_frame_{idx}")  for idx in range(window)]
+        frame_stacker = Lambda(lambda x: tf.stack(x, axis=-1), name="stack_frames")
+        states = frame_stacker(state_frames)
 
-        next_state_frames = [Input(shape=input_dimensions, name=f"next_state_frame_{i}") for i in range(4)]
-        next_states = Lambda(lambda x: tf.stack(x, axis=-1))(next_state_frames)
+        next_state_frames = [Input(shape=input_dimensions, name=f"next_state_frame_{i}") for i in range(window)]
+        next_states = frame_stacker(next_state_frames)
 
         action = Input(shape=(1,), dtype=tf.int32, name='action') 
         is_done = Input(shape=(1,), dtype=tf.bool, name='is_done') 
         reward = Input(shape=(1,), name='reward') 
+        adjusted_reward = Lambda(lambda x: K.clip(x, -1, 1), name="clip_reward")(reward) if clip_reward else reward
 
-        scaled_layer_states = Lambda(lambda x: x / 255.0)(states)
-        scaled_layer_next_states = Lambda(lambda x: x / 255.0)(next_states)
-        networks = []
-        for idx, scaled_layer in enumerate([scaled_layer_states, scaled_layer_next_states]):
-            hidden_layer = scaled_layer
+        normalize_frames = Lambda(lambda x: x / 255.0, name="normalize_frames")
+        scaled_layer_states = normalize_frames(states)
+        scaled_layer_next_states = normalize_frames(next_states)
 
-            for conv_count, kernel, stride in zip(conv_nodes, kernel_size, conv_stride):
-                hidden_layer = Conv2D(filters=conv_count,
+        #for idx, scaled_layer in enumerate([scaled_layer_states, scaled_layer_next_states]):
+
+        hidden_layer1 = scaled_layer_states
+        hidden_layer2 = scaled_layer_next_states
+        if double_deep_q:
+            double_deep_q_network = scaled_layer_next_states
+
+        for idx, (conv_count, kernel, stride) in enumerate(zip(conv_nodes, kernel_size, conv_stride)):
+            conv_layer = Conv2D(
+                filters=conv_count,
                                                    kernel_size=kernel,
                                                    strides=stride,
-                                                   activation='relu',
+                activation=activation_name,
                                                    use_bias=False,
-                                                   data_format='channels_last')(hidden_layer)
+                data_format='channels_last')
+            hidden_layer1 = conv_layer(hidden_layer1)
+            if double_deep_q:
+                double_deep_q_network = conv_layer(double_deep_q_network)
+                #if is_dueling:
+                    #value_double_deep_q_network = conv_layer(value_double_deep_q_network)
 
-            hidden_layer = Flatten()(hidden_layer)
+            hidden_layer2 = Conv2D(
+                filters=conv_count,
+                kernel_size=kernel,
+                strides=stride,
+                activation=activation_name,
+                use_bias=False,
+                data_format='channels_last',
+                name=f"target_conv2d_{idx}")(hidden_layer2)
+
+        flatten = Flatten(name='flatten')
+        hidden_layer1 = flatten(hidden_layer1)
+        hidden_layer2 = flatten(hidden_layer2)
+
+        if double_deep_q:
+            double_deep_q_network = flatten(double_deep_q_network)
+            if is_dueling:
+                value_double_deep_q_network = double_deep_q_network
+
+        if is_dueling:
+            state_value_network = hidden_layer1
+            target_state_value_network = hidden_layer2
+
             for _ in range(hidden_layer_count):
-                hidden_layer = Dense(nodes_per_layer, activation='relu')(hidden_layer)
+            dense_layer = Dense(nodes_per_layer, activation=activation_name)
+            hidden_layer1 = dense_layer(hidden_layer1)
 
-            predictions = Dense(output_dimension, activation='linear', name=f'action_values_{idx}')(hidden_layer)
-            networks.append(predictions)
+            target_dense_network = Dense(nodes_per_layer, activation=activation_name)
+            hidden_layer2 = target_dense_network(hidden_layer2)
+
+            if is_dueling:
+                dense_value_layer = Dense(nodes_per_layer, activation=activation_name)
+                state_value_network = dense_value_layer(state_value_network)
+                target_state_value_network = Dense(nodes_per_layer, activation=activation_name)(target_state_value_network)
+            if double_deep_q:
+                double_deep_q_network = dense_layer(double_deep_q_network)
+                if is_dueling:
+                    value_double_deep_q_network = dense_value_layer(value_double_deep_q_network)
+
+        if is_dueling:
+            advantage_values_layer = Dense(output_dimension, activation='linear', name=f'advantage')
+            advantage_values = advantage_values_layer(hidden_layer1)
+            state_value_layer = Dense(1, activation='linear', name="state_value")
+            state_value = state_value_layer(state_value_network)
+
+            target_advantage_values = Dense(output_dimension, activation='linear', name=f'target_advantage')(hidden_layer2)
+            target_state_value = Dense(1, activation='linear', name="target_state_value")(target_state_value_network)
+
+            action_values_layer = DuelingCombiningLayer(name="action_values")
+            action_values = action_values_layer([advantage_values, state_value])
+            target_action_values = DuelingCombiningLayer(name="target_actions_values")([target_advantage_values, target_state_value])
+        else:
+            action_values_layer = Dense(output_dimension, activation='linear', name=f'action_values')
+            action_values = action_values_layer(hidden_layer1)
+            target_action_values = Dense(output_dimension, activation='linear', name=f'target_action_values')(hidden_layer2)
 
         #TODO switch back optimizers and huber
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, epsilon=1.5e-4), loss=tf.keras.losses.Huber())
 
-        model_action_values, target_model_action_values = networks
-
-        #with tf.device('/cpu:0'):
-        best_action = Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(model_action_values)
+        best_action = Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(action_values)
         action_selector = Model(inputs=state_frames, outputs=best_action)
 
-        def custom_loss(values, correct_values):
-            def loss(y_true, y_pred):
+        def custom_mse_loss(values, correct_values):
+            def loss(_1, _2):
                 return mean(K.square(correct_values - values), axis=-1)
             return loss
 
@@ -187,17 +258,30 @@ class DeepQFactory:
                 return tf.where(cond, squared_loss, linear_loss)
             return huber_loss
 
-        # TODO double Q
-        #target_action_value = Model(inputs=states, outputs=best_action)
+        model = Model(inputs=state_frames, outputs=action_values)
 
-        model = Model(inputs=state_frames, outputs=model_action_values)
-
-        target = Model(inputs=next_state_frames, outputs=target_model_action_values)
+        target = Model(inputs=next_state_frames, outputs=target_action_values)
         # TODO
-        test = BellmanLayer(name="actual_action_values")([action_values, action, q_prime_value])
+        if double_deep_q:
+            if is_dueling:
+                double_advantage_values = advantage_values_layer(double_deep_q_network)
+                double_state_value = state_value_layer(value_double_deep_q_network)
+                double_action_values = action_values_layer([double_advantage_values, double_state_value])
+            else:
+                double_action_values = action_values_layer(double_deep_q_network)
+            #actual_target_action_value = Model(inputs=next_state_frames, outputs=double_deep_q_network)
+            #q_prime_value = Q_Prime_Layer(None)([target_model_action_values, adjusted_reward, is_done])
+            if clipped_double_deep_q:
+                q_prime_value = ClippedDoubleQPrimeLayer()([double_action_values, target_action_values, adjusted_reward, is_done])
+            else:
+                q_prime_value = DoubleQPrimeLayer()([double_action_values, target_action_values, adjusted_reward, is_done])
+        else:
+            q_prime_value = QPrimeLayer()([target_action_values, adjusted_reward, is_done])
 
-        #trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(model_action_values, test))
-        trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(model_action_values, test))
+        test = BellmanLayer(name="actual_action_values")([action_values, action, q_prime_value])
+        trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=action_values)
+
+        #trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_mse_loss(model_action_values, test))
 
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
         return model, target, action_selector, trainable
