@@ -56,7 +56,8 @@ class Agent:
                  # decay_type: str = Agent.DECAY_TYPE_LINEAR,
                  early_stopping: bool = True,
                  verbose=0,
-                 seed=None,
+                 seed=4,
+                 #seed=None,
                  experience_creator=Experience,
                  observation_processor=array,
                  window=4,
@@ -65,8 +66,8 @@ class Agent:
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
-            seed = random.randint(0, 99999999)
-        self.np_random_state = random.RandomState(seed)
+            seed = np.random.randint(0, 99999999)
+        self.np_random_state = np.random.RandomState(seed)
         self.experience_creator = experience_creator
         self.observation_processor = observation_processor
         self.window = window
@@ -74,12 +75,14 @@ class Agent:
         self.learner = learner
         self.replay_buffer = replay_buffer
         self.env = environment
-        self.env.seed(self.seed())
-        self.env.action_space.seed(self.seed())
+        #self.env.seed(self.seed())
+        self.env.seed(seed)
+        #self.env.action_space.seed(self.seed())
+        self.env.action_space.seed(seed)
         # This is needed to keep multiple game windows from opening up when scoring
         self.scoring_env = deepcopy(self.env)
-        self.scoring_env.seed(self.seed())
-        self.scoring_env.action_space.seed(self.seed())
+        self.scoring_env.seed(seed)
+        self.scoring_env.action_space.seed(seed)
         self.random_action_rate = 1.0
         self.verbose = verbose
         self.early_stopping = early_stopping
