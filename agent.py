@@ -64,6 +64,7 @@ class Agent:
                  observation_processor=array,
                  window=4,
                  target_network_interval=None,
+                 random_decay_end=1000000,
                  name_prefix=""):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
