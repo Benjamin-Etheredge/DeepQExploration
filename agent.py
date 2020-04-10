@@ -214,8 +214,6 @@ class Agent:
 
             game_count += 1
 
-            # Start a new game
-            self.env.seed(self.seed())
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
             step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
@@ -292,7 +290,8 @@ class Agent:
 
     def play_game(self, buffer=VoidBuffer(), random_rate=0.0, verbose: int = 0):
         total_reward = 0
-        self.scoring_env.seed(self.seed())
+        #self.scoring_env.seed(self.seed())
+        #self.env.action_space.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
         current_lives = self.scoring_env.env.ale.lives()
         step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
