@@ -16,7 +16,6 @@ np.random.seed(4)
 import tensorflow as tf
 tf.random.set_seed(4)
 
-
 class TestAgent(TestCase):
     CartPole_V0 = 'CartPole-v0'
     CartPole_V1 = 'CartPole-v1'
