@@ -43,9 +43,14 @@ class MyLayer(tf.keras.layers.Layer):
         self.output_dim = output_dim
         super(MyLayer, self).__init__(**kwargs)
 
+class BellmanLayer(tf.keras.layers.Layer):
+
+    def __init__(self, **kwargs):
+        super(BellmanLayer, self).__init__(**kwargs)
+
     def build(self, input_shape):
         assert isinstance(input_shape, list)
-        super(MyLayer, self).build(input_shape)  # Be sure to call this at the end
+        super(BellmanLayer, self).build(input_shape)  # Be sure to call this at the end
 
     def call(self, x):
         assert isinstance(x, list)

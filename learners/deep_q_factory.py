@@ -6,8 +6,7 @@ from tensorflow.keras import Input, Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import Huber
 from .deep_q import DeepQ
-from .custom_layers import MyLayer, Q_Prime_Layer
-import tensorflow as tf
+from .custom_layers import BellmanLayer, QPrimeLayer, DoubleQPrimeLayer, DuelingCombiningLayer, ClippedDoubleQPrimeLayer
 import numpy as np
 np.random.seed(4)
 import tensorflow as tf
@@ -195,9 +194,7 @@ class DeepQFactory:
 
         target = Model(inputs=next_state_frames, outputs=target_model_action_values)
         # TODO
-        q_prime_value = Q_Prime_Layer(None)([model_action_values, target_model_action_values, reward, is_done])
-        test = MyLayer(output_dimension)([model_action_values, action, q_prime_value])
-        trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=model_action_values)
+        test = BellmanLayer(name="actual_action_values")([action_values, action, q_prime_value])
 
         #trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_loss(model_action_values, test))
         trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(model_action_values, test))
