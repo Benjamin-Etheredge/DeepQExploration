@@ -2,8 +2,10 @@ from collections import deque
 import random
 
 import numpy as np
+np.random.seed(4)
 
-from numpy import mean, array
+import random
+random.seed(4)
 
 
 # TODO implement priority replay buffer

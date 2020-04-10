@@ -1,6 +1,9 @@
 from tensorflow.keras.layers import Layer
 import tensorflow.keras.backend as K
 import tensorflow as tf
+import numpy as np
+np.random.seed(4)
+tf.random.set_seed(4)
 
 class Q_Prime_Layer(Layer):
 

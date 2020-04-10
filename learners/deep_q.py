@@ -1,4 +1,7 @@
 import numpy as np
+np.random.seed(4)
+import random
+random.seed(4)
 
 class DeepQ:
     #@profile

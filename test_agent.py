@@ -6,7 +6,12 @@ from multiprocessing import Process
 from agent import *
 from buffer import *
 from learners import DeepQFactory
+import random
+random.seed()
 import numpy as np
+np.random.seed(4)
+import tensorflow as tf
+tf.random.set_seed(4)
 
 
 class TestAgent(TestCase):

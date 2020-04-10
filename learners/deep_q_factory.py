@@ -9,6 +9,10 @@ from .deep_q import DeepQ
 from .custom_layers import MyLayer, Q_Prime_Layer
 import tensorflow as tf
 import numpy as np
+np.random.seed(4)
+import tensorflow as tf
+tf.random.set_seed(4)
+tf.compat.v1.set_random_seed(4)
 
 class DeepQFactory:
     # Different Q-prime computating functions

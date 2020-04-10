@@ -5,6 +5,12 @@ from datetime import datetime
 from timeit import default_timer as timer
 import sys
 
+import numpy as np
+np.random.seed(4)
+import tensorflow as tf
+tf.random.set_seed(4)
+import random
+random.seed(4)
 #from learners import *
 from learners import DeepQ
 from tensorflow_core.python.keras.api._v1 import keras
