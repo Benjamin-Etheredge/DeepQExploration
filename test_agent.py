@@ -188,7 +188,6 @@ class TestAgent(TestCase):
                         target_network_interval=10000, 
                         max_episodes=400)
 
-
     def test_profile_Breakout(self):
         self.test_atari("Breakout-v4", 
                         start_length=100000,
