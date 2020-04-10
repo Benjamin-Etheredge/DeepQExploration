@@ -249,6 +249,7 @@ class Agent:
                 experience = self.experience_creator(state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
+                                                     reward=reward,
                                                      is_done=is_terminal or is_done)
                 self.replay_buffer.append(experience)
 
@@ -322,6 +323,7 @@ class Agent:
                 state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
+                reward=reward,
                 is_done=done or is_terminal)
             buffer.append(experience)
         return total_reward
