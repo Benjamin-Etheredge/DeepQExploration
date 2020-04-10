@@ -106,7 +106,7 @@ class Agent:
         self.reward_stopping_threshold = reward_threshold
         self.max_episode_steps = max_episode_steps
         self.max_episodes = max_episodes
-        self.on_policy_check_interval = min(max_episodes // 10, 250)
+        self.on_policy_check_interval = min(max_episodes // 10, 150)
 
         if target_network_interval is None:
             self.target_network_updating_interval = int(self.max_episode_steps * 0.5)
@@ -194,6 +194,8 @@ class Agent:
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
+        best_off_policy_score = float("-inf")
+        best_on_policy_score = float("-inf")
         game_count = 0
         total_steps = 0
         start_time = timer()
@@ -202,9 +204,13 @@ class Agent:
             if game_count % self.on_policy_check_interval == 0:
                 # Use max instead of min to be closer to the other publications
                 # on_policy_score = np.mean([self.play_game(random_rate=0.0) for _ in range(4)])
-                on_policy_score = max([self.play_game(random_rate=0.0) for _ in range(10)])
-                self.tensorboard_log(name="on_policy_score_per_game", data=on_policy_score, step=game_count)
-                self.tensorboard_log(name="on_policy_score_per_frames", data=on_policy_score, step=total_steps)
+                on_policy_scores = [self.play_game(random_rate=0.0) for _ in range(4)]
+                max_on_policy_score = max(on_policy_scores)
+                median_on_policy_score = np.median(on_policy_scores)
+                best_on_policy_score = max(max_on_policy_score, best_on_policy_score)
+                self.tensorboard_log(name="best_on_policy_score_per_frames", data=best_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="median_on_policy_score_per_frames", data=median_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
             game_count += 1
 
