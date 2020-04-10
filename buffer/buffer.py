@@ -7,6 +7,7 @@ np.random.seed(4)
 import random
 random.seed(4)
 
+#from PIL import Image
 
 # TODO implement priority replay buffer
 from experience import Experience
@@ -22,7 +23,8 @@ class AtariExperience():
         #return mean(array(img[::2, ::2]), axis=2).astype(np.uint8) # TODO why does this leak memory?
         #return np.dot(array(img)[...,:3], [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
         #return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)
-        return np.dot(array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
+        return np.dot(np.array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
+        #return Image.fromarray(img, 'RGB').convert('L').resize()
 
 
 def clipped_atari(reward, *args, **kwargs):
