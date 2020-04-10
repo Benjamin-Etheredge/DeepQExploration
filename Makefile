@@ -2,8 +2,8 @@
 
 NS ?= betheredge
 
-IMAGE_NAME ?= dev
-CONTAINER_NAME ?= dev
+IMAGE_NAME ?= gym_dev
+CONTAINER_NAME ?= gym_dev
 DIR := ${CURDIR}
 
 
@@ -21,3 +21,25 @@ profile: build
 
 space:
 	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_SpaceInvaders_v4
+
+vanilla:
+	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_vanilla
+
+vanilla:
+	docker run --name vanilla --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_vanilla
+double:
+	docker run --name double --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_double
+duel:
+	docker run --name duel --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_duel
+
+double_duel:
+	docker run --name double_duel --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_double_duel
+
+clipped_double_duel:
+	docker run --name clipped_double_duel --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_clipped_double_duel
+
+networks:
+	make -j 3 vanilla double duel
+
+test_env:
+	docker run --rm -v $(DIR):/app $(NS)/$(IMAGE_NAME) python test_env.py
