@@ -197,7 +197,6 @@ class Agent:
 
     def play(self, step_limit=float("inf"), verbose: int = 0):
 
-        best_off_policy_score = float("-inf")
         best_on_policy_score = float("-inf")
         best_off_policy_score = float("-inf")
         game_count = 0
