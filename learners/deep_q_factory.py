@@ -123,10 +123,6 @@ class DeepQFactory:
         model.compile(optimizer=Adam(lr=learning_rate), loss=Huber())
         return model
 
-    def double_custom_loss(layer):
-        def loss(y):
-            pass
-
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_conv_build_model_raw(
