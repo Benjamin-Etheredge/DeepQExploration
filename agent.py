@@ -48,7 +48,7 @@ class Agent:
                  environment: gym.Env,
                  max_episode_steps: int,
                  max_episodes=float("inf"),
-                 scorer: Scores = Scores(100),
+                 #scorer: Scores = Scores(100),
                  reward_threshold: int = None,
                  sample_size=128,
                  random_choice_decay_min: float = 0.05,
