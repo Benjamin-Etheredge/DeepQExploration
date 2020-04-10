@@ -22,8 +22,18 @@ from scores import *
 from experience import Experience
 from buffer import ReplayBuffer, VoidBuffer
 from collections import deque
-import random
-from numpy import clip, stack, array, random, power
+
+# Limit GPU Memory Allocation
+# https://mc.ai/tensorflow-2-0-wanna-limit-gpu-memory/
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
 import tensorflow.compat.v1 as tf # this must go after due to FileWriter. TODO cleanup
 tf.disable_eager_execution()
 
