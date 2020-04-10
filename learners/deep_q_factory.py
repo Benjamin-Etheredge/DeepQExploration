@@ -5,7 +5,7 @@ from tensorflow.keras.backend import argmax, mean, square
 import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Dense, Conv2D, Lambda, Flatten, concatenate, Subtract, Add
 from tensorflow.keras import Input, Model
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorflow.keras.losses import Huber
 from .deep_q import DeepQ
 from .custom_layers import BellmanLayer, QPrimeLayer, DoubleQPrimeLayer, DuelingCombiningLayer, ClippedDoubleQPrimeLayer
@@ -284,6 +284,9 @@ class DeepQFactory:
         trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=action_values)
 
         #trainable.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss=custom_mse_loss(model_action_values, test))
+        trainable.compile(optimizer=RMSprop(lr=learning_rate), loss=custom_huber_loss(action_values, test))
+        #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
+        #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
         return model, target, action_selector, trainable
