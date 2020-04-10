@@ -168,10 +168,10 @@ class DeepQFactory:
         for idx, (conv_count, kernel, stride) in enumerate(zip(conv_nodes, kernel_size, conv_stride)):
             conv_layer = Conv2D(
                 filters=conv_count,
-                                                   kernel_size=kernel,
-                                                   strides=stride,
+                kernel_size=kernel,
+                strides=stride,
                 activation=activation_name,
-                                                   use_bias=False,
+                use_bias=False,
                 data_format='channels_last')
             hidden_layer1 = conv_layer(hidden_layer1)
             if double_deep_q:
@@ -201,7 +201,7 @@ class DeepQFactory:
             state_value_network = hidden_layer1
             target_state_value_network = hidden_layer2
 
-            for _ in range(hidden_layer_count):
+        for _ in range(hidden_layer_count):
             dense_layer = Dense(nodes_per_layer, activation=activation_name)
             hidden_layer1 = dense_layer(hidden_layer1)
 
