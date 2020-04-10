@@ -216,7 +216,9 @@ class Agent:
             list_buffer = list(step_buffer)
             self.replay_buffer.prep(step) # TODO is prep needed?
 
+            current_lives = self.env.env.ale.lives()
             is_done = False
+            is_terminal = False
             total_reward = 0
             game_steps = 0
             game_start_time = time.time()
@@ -228,7 +230,11 @@ class Agent:
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
                 game_steps += 1
-                next_step, reward, is_done, _ = self.env.step(action_choice)
+                next_step, reward, is_done, info = self.env.step(action_choice)
+                if 'ale.lives' in info:
+                    lives = info['ale.lives']
+                    is_terminal = lives < current_lives
+                    current_lives = lives
                 next_step = self.observation_processor(next_step)
                 step_buffer.append(next_step)
                 list_buffer = list(step_buffer)
@@ -237,8 +243,7 @@ class Agent:
                 experience = self.experience_creator(state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
-                                                     reward=clip(reward, -1, 1),
-                                                     is_done=is_done)
+                                                     is_done=is_terminal or is_done)
                 self.replay_buffer.append(experience)
 
                 if self.replay_buffer.is_ready():
@@ -282,6 +287,7 @@ class Agent:
         total_reward = 0
         self.scoring_env.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
+        current_lives = self.scoring_env.env.ale.lives()
         step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
         self.replay_buffer.prep(step)
         list_buffer = list(step_buffer)
@@ -294,19 +300,23 @@ class Agent:
             # TODO convert step_buffer to longer form and make it my window....
             action_choice = self.get_next_action(list_buffer[1:], random_rate)
             # TODO build better policy evaluator
-            step, reward, done, _ = self.scoring_env.step(action_choice)
+            step, reward, done, info = self.scoring_env.step(action_choice)
             total_reward += reward
             step_count += 1
             step = self.observation_processor(step)
             step_buffer.append(step)
             list_buffer = list(step_buffer)
 
+            if 'ale.lives' in info:
+                lives = info['ale.lives']
+                is_terminal = lives < current_lives
+                current_lives = lives
+
             experience = self.experience_creator(
                 state=list_buffer[:-1],
                                                      action=action_choice,
                                                      next_state=list_buffer[1:],
-                reward=clip(reward, -1, 1),
-                                                     is_done=done)
+                is_done=done or is_terminal)
             buffer.append(experience)
         return total_reward
 
