@@ -1,7 +1,7 @@
-import numpy as np
+#import numpy as np
 #from tensorflow_core._api.v2.compat import v1 as tf
 #from tensorflow_core.python.keras.api._v1 import keras
-from tensorflow import keras
+#from tensorflow import keras
 
 #from tensorflow.keras.mixed_precision import experimental as mixed_precision
 #policy = mixed_precision.Policy('mixed_float16')
@@ -10,13 +10,13 @@ from tensorflow import keras
 #print('Variable dtype: %s' % policy.variable_dtype)
 
 
-from buffer import ReplayBuffer
-import os
+#from buffer import ReplayBuffer
+#import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 #os.environ['TF_ENABLE_AUTO_MIXED_PRECISION'] = '1'
 
-import tensorflow as tf
-tf.compat.v1.disable_eager_execution()
+#import tensorflow as tf
+#tf.compat.v1.disable_eager_execution()
 
 #from numba import jit
 
@@ -32,12 +32,12 @@ tf.compat.v1.disable_eager_execution()
 #disable_eager_execution()
 #import  tensorflow.compat.v2.k
 
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
+#from tensorflow.compat.v1 import ConfigProto
+#from tensorflow.compat.v1 import InteractiveSession
 
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
+#config = ConfigProto()
+#config.gpu_options.allow_growth = True
+#session = InteractiveSession(config=config)
 
 #from tensorflow.keras.mixed_precision import experimental as mixed_precision
 #policy = mixed_precision.Policy('mixed_float16')
