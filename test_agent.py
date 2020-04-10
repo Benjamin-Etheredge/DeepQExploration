@@ -115,6 +115,7 @@ class TestAgent(TestCase):
             window=window,
             target_network_interval=target_network_interval,
             random_decay_end=random_decay_end,
+            name_prefix=name_prefix)
         agent.play(max_episodes * max_episode_steps, verbose=0)
         #score = agent.score_model(100, verbose=0)
 
@@ -139,6 +140,7 @@ class TestAgent(TestCase):
         self.test_play(
             environment=environment_name,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
+            name_prefix=name_prefix,
             sample_size=32,
             verbose=1,
             #experience_creator=AtariExperience,
