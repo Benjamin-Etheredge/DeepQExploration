@@ -206,7 +206,8 @@ class Agent:
         best_off_policy_score = float("-inf")
         game_count = 0
         total_steps = 0
-        start_time = timer()
+        rolling_average_scores = deque([], maxlen=10)
+        moving_average = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
 
             if game_count % self.on_policy_check_interval == 0:
@@ -232,7 +233,6 @@ class Agent:
             self.tensorboard_log(name="lives", data=current_lives, step=total_steps)
             is_done = False
             is_terminal = False
-            rolling_average = 0
             total_reward = 0
             old_reward = 0
             old_steps = 0
@@ -263,7 +263,6 @@ class Agent:
                                              data=game_steps-old_steps,
                                              step=total_steps)
                         old_reward = total_reward
-                        old_reward = total_reward
                         old_steps = game_steps
                         self.tensorboard_log(name="lives", data=lives, step=total_steps)
                     current_lives = lives
@@ -289,25 +288,24 @@ class Agent:
                     if self.should_update_target_model(total_steps):
                         self.tensorboard_log(name="target_model_updates",
                                              data=int(total_steps / self.target_network_updating_interval),
-                                             step=game_count)
+                                             step=total_steps)
                         self.update_target_model()
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
             best_off_policy_score = max(best_off_policy_score, total_reward)
-            rolling_average -= rolling_average / game_count
-            rolling_average += total_reward / game_count
-            self.tensorboard_log(name="move_per_second_per_game", data=moves_per_second, step=game_count)
-            self.tensorboard_log(name="best_off_policy_game_score_per_frames", data=best_off_policy_score, step=total_steps)
-            #self.tensorboard_log(name="off_policy_game_score_per_game", data=total_reward, step=game_count)
-            self.tensorboard_log(name="off_policy_game_score_per_frames", data=total_reward, step=total_steps)
+            rolling_average_scores.append(total_reward)
+            rolling_average = np.mean(rolling_average_scores)
+            self.tensorboard_log(name="move_per_second", data=moves_per_second, step=game_count)
+            self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
+            self.tensorboard_log(name="off_policy_score_per_frames", data=total_reward, step=total_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
-            rolling_average -= rolling_average / game_count
-            rolling_average += total_reward / game_count
+            moving_average -= moving_average / game_count
+            moving_average += total_reward / game_count
             self.tensorboard_log(name="rolling_average", data=rolling_average, step=game_count)
+            self.tensorboard_log(name="moving_average", data=moving_average, step=game_count)
 
-            #self.tensorboard_log(name="epsilon_rate_per_game", data=self.random_action_rate, step=game_count)
             self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
             self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
