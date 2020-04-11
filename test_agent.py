@@ -164,6 +164,9 @@ class TestAgent(TestCase):
     def test_SpaceInvaders_v4(self):
         self.test_atari("SpaceInvaders-v4")
 
+    def test_vanilla_Breakout(self):
+        self.test_atari("Breakout-v4", name_prefix="vanilla_")
+
     def test_vanilla(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="vanilla_")
 
