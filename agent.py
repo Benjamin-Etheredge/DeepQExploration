@@ -65,7 +65,8 @@ class Agent:
                  window=4,
                  target_network_interval=None,
                  random_decay_end=1000000,
-                 name_prefix=""):
+                 name_prefix="",
+                 random_starting_actions_max=50):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
@@ -89,6 +90,7 @@ class Agent:
         self.random_action_rate = 1.0
         self.verbose = verbose
         self.early_stopping = early_stopping
+        self.random_starting_actions_max = random_starting_actions_max
         if verbose >= 1:
             env_name = self.env.unwrapped.spec.id
 
@@ -161,6 +163,9 @@ class Agent:
             return self.env.action_space.sample()
         else:
             return self.learner.get_next_action(state)
+
+    def get_random_action(self):
+        return self.env.action_space.sample()
 
     def decay_epsilon(self):
         # TODO set decay operator
@@ -236,6 +241,9 @@ class Agent:
 
             # TODO for environments that reach the step limit, must specially handle case as not terminal
             # e.g. reaching the step limit should not have Q Prime set equal to 0.
+            starting_step = np.random.randint(0, self.random_starting_actions_max//self.window)  #should I be dividing this?
+            for _ in range(starting_step):
+                self.env.step(self.get_random_action())
             while not is_done:
                 if verbose > 3:
                     self.env.render()
@@ -326,6 +334,9 @@ class Agent:
         list_buffer = list(step_buffer)
         step_count = 0
 
+        starting_step = np.random.randint(0, self.random_starting_actions_max // self.window)  # should I be dividing this?
+        for _ in range(starting_step):
+            self.scoring_env.step(self.get_random_action())
         done = False
         while not done:
             if verbose > 3:
