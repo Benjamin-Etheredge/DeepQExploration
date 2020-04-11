@@ -87,9 +87,8 @@ class ReplayBuffer:
             next_states.append(item.next_state)
             rewards.append(item.reward)
             is_dones.append(item.isDone)
-        return np.array(states), np.array(actions), np.array(next_states), \
-               np.array(rewards), np.array(is_dones)
-
+        return np.array(states, dtype=np.uint8), np.array(actions, dtype=np.uint8), np.array(next_states, dtype=np.uint8), \
+               np.array(rewards), np.array(is_dones, dtype=np.bool_)
 
     def append(self, experience):
         if self.is_full():
