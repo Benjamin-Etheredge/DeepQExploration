@@ -173,9 +173,9 @@ class Agent:
 
     def update_learner(self):
         sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
-        loss = self.learner.update(sample)
+        loss, learner_info = self.learner.update(sample)
         self.replay_buffer.update(sample_idxs, loss)
-        return loss
+        return loss, learner_info
 
     # TODO implement actual logger
     def should_log(self, iteration):

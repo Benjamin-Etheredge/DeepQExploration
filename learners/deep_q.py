@@ -115,5 +115,5 @@ class DeepQ:
         # TODO refactor
         losses = self.model.train_on_batch(x=states, y=current_all_action_values)
         '''
-        return losses
+        return losses, None
 
