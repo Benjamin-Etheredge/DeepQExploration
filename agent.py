@@ -160,7 +160,7 @@ class Agent:
         if random_choice_rate is None:
             random_choice_rate = self.random_action_rate
         if self.should_select_random_action(random_choice_rate):
-            return self.env.action_space.sample()
+            return self.get_random_action()
         else:
             return self.learner.get_next_action(state)
 
