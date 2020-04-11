@@ -163,19 +163,19 @@ class TestAgent(TestCase):
         self.test_atari("SpaceInvaders-v4")
 
     def test_vanilla(self):
-        self.test_atari("SpaceInvaders-v4", name_prefix="vanilla_")
+        self.test_atari("SpaceInvaders-v0", name_prefix="vanilla_")
 
     def test_double(self):
-        self.test_atari("SpaceInvaders-v4", name_prefix="double_", double_deep_q=True)
+        self.test_atari("SpaceInvaders-v0", name_prefix="double_", double_deep_q=True)
 
     def test_duel(self):
-        self.test_atari("SpaceInvaders-v4", name_prefix="duel_", is_dueling=True)
+        self.test_atari("SpaceInvaders-v0", name_prefix="duel_", is_dueling=True)
 
     def test_double_duel(self):
-        self.test_atari("SpaceInvaders-v4", name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
+        self.test_atari("SpaceInvaders-v0", name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
 
     def test_clipped_double_duel(self):
-        self.test_atari("SpaceInvaders-v4", name_prefix="clipped_double_duel_", double_deep_q=True, is_dueling=True, clipped_double_deep_q=True)
+        self.test_atari("SpaceInvaders-v0", name_prefix="clipped_double_duel_", double_deep_q=True, is_dueling=True, clipped_double_deep_q=True)
 
     def test_Breakout(self):
         self.test_atari("Breakout-v4")
