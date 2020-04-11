@@ -280,7 +280,7 @@ class Agent:
                 self.replay_buffer.append(experience)
 
                 if self.replay_buffer.is_ready():
-                    loss = self.update_learner()
+                    loss, learner_info = self.update_learner()
                     self.tensorboard_log(name="loss", data=loss, step=total_steps)
 
                     self.decay_epsilon()
