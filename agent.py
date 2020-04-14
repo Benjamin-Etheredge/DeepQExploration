@@ -216,8 +216,9 @@ class Agent:
                 on_policy_scores = [self.play_game(random_rate=0.0) for _ in range(4)]
                 max_on_policy_score = max(on_policy_scores)
                 median_on_policy_score = np.median(on_policy_scores)
-                best_on_policy_score = max(max_on_policy_score, best_on_policy_score)
-                self.tensorboard_log(name="best_on_policy_score_per_frames", data=best_on_policy_score, step=total_steps)
+                if best_on_policy_score < max_on_policy_score:
+                    best_on_policy_score = max_on_policy_score
+                    self.tensorboard_log(name="best_on_policy_score_per_frames", data=best_on_policy_score, step=total_steps)
                 self.tensorboard_log(name="median_on_policy_score_per_frames", data=median_on_policy_score, step=total_steps)
                 self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
@@ -295,10 +296,12 @@ class Agent:
             elapsed_seconds = game_stop_time - game_start_time
             moves_per_second = game_steps / elapsed_seconds
             best_off_policy_score = max(best_off_policy_score, total_reward)
+            if best_off_policy_score < total_reward:
+                best_off_policy_score = total_reward
+                self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
             self.tensorboard_log(name="move_per_second", data=moves_per_second, step=game_count)
-            self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
             self.tensorboard_log(name="off_policy_score_per_frames", data=total_reward, step=total_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
             moving_average -= moving_average / game_count
