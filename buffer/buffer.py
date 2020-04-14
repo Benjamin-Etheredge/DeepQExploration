@@ -1,35 +1,12 @@
-from collections import deque
-
 import numpy as np
+
 np.random.seed(4)
 
 import random
 random.seed(4)
 
-#from PIL import Image
 
 # TODO implement priority replay buffer
-from experience import Experience
-
-
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-class AtariExperience():
-
-    @staticmethod
-    def gray_scale(img):
-        #return mean(array(img[::2, ::2]), axis=2).astype(np.uint8) # TODO why does this leak memory?
-        #return np.dot(array(img)[...,:3], [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
-        #return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)
-        return np.dot(np.array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
-        #return Image.fromarray(img, 'RGB').convert('L').resize()
-
-
-def clipped_atari(reward, *args, **kwargs):
-    reward = min(1, max(reward, -1))
-    return AtariExperience(reward=reward, *args, **kwargs)
-
 
 class ReplayBuffer:
 
@@ -87,8 +64,16 @@ class ReplayBuffer:
             next_states.append(item.next_state)
             rewards.append(item.reward)
             is_dones.append(item.isDone)
-        return np.array(states, dtype=np.uint8), np.array(actions, dtype=np.uint8), np.array(next_states, dtype=np.uint8), \
-               np.array(rewards), np.array(is_dones, dtype=np.bool_)
+        frame_count = len(states[0])
+
+        states = [np.array([state[frame_idx] for state in states], dtype=np.uint8) for frame_idx in range(frame_count)]
+        actions = np.array(actions, dtype=np.uint8)
+        #next_states = [np.array([state[frame_idx] for frame_idx in range(frame_count)], dtype=np.uint8) for state in next_states]
+        next_states = [np.array([state[frame_idx] for state in next_states], dtype=np.uint8) for frame_idx in range(frame_count)]
+        rewards = np.array(rewards, dtype=np.float32)
+        is_dones = np.array(is_dones, dtype=np.bool_)
+
+        return states, actions, next_states, rewards, is_dones
 
     def append(self, experience):
         if self.is_full():

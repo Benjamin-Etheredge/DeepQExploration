@@ -6,7 +6,8 @@ import time
 # TODO cleanup imports
 import gym
 from agent import Agent
-from buffer import ReplayBuffer, AtariExperience
+from buffer import ReplayBuffer
+from utils.utils import convert_atari_frame
 from experience import Experience
 from learners import DeepQFactory
 import random
@@ -146,13 +147,12 @@ class TestAgent(TestCase):
             layer_count=1,
             #buffer_creator=AtariBuffer,
             #learning_rate=0.0000625,
-
             #target_network_interval=32000,  # Rainbow value
             target_network_interval=10000,
             random_choice_min_rate=0.05,
             nodes_per_layer=512,
             window=4,
-            data_func=AtariExperience.gray_scale,
+            data_func=convert_atari_frame,
             conv_nodes=[32, 64, 64],
             kernel_size=[8, 4, 3],
             conv_stride=[4, 2, 1],
@@ -186,19 +186,17 @@ class TestAgent(TestCase):
         self.test_atari("Breakout-v4")
 
     def test_profile_Space(self):
-        self.test_atari("SpaceInvaders-v4", 
+        self.test_atari("SpaceInvaders-v0",
                         start_length=1000000,
                         end_length=1000000,
-                        random_decay_end=100000, 
-                        target_network_interval=10000, 
-                        max_episodes=400)
+                        random_decay_end=20000,
+                        max_episodes=300)
 
     def test_profile_Breakout(self):
         self.test_atari("Breakout-v4", 
                         start_length=100000,
                         end_length=100000,
                         random_decay_end=100000, 
-                        target_network_interval=10000, 
                         max_episodes=250)
 
     def test_Breakout_v4(self):

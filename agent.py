@@ -206,7 +206,7 @@ class Agent:
         best_off_policy_score = float("-inf")
         game_count = 0
         total_steps = 0
-        rolling_average_scores = deque([], maxlen=10)
+        rolling_average_scores = deque([], maxlen=200)
         moving_average = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
 
@@ -218,16 +218,15 @@ class Agent:
                 median_on_policy_score = np.median(on_policy_scores)
                 if best_on_policy_score < max_on_policy_score:
                     best_on_policy_score = max_on_policy_score
-                    self.tensorboard_log(name="best_on_policy_score_per_frames", data=best_on_policy_score, step=total_steps)
-                self.tensorboard_log(name="median_on_policy_score_per_frames", data=median_on_policy_score, step=total_steps)
+                    self.tensorboard_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
                 self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
             game_count += 1
 
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
-            step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
-            list_buffer = list(step_buffer)
+            list_buffer = [step for _ in range(self.window+1)]
             self.replay_buffer.prep(step) # TODO is prep needed?
 
             current_lives = self.env.env.ale.lives()
@@ -242,7 +241,7 @@ class Agent:
 
             # TODO for environments that reach the step limit, must specially handle case as not terminal
             # e.g. reaching the step limit should not have Q Prime set equal to 0.
-            starting_step = np.random.randint(0, self.random_starting_actions_max//self.window)  #should I be dividing this?
+            starting_step = np.random.randint(0, self.random_starting_actions_max)  #should I be dividing this?
             for _ in range(starting_step):
                 self.env.step(self.get_random_action())
             while not is_done:
@@ -269,8 +268,8 @@ class Agent:
                     current_lives = lives
 
                 next_step = self.observation_processor(next_step)
-                step_buffer.append(next_step)
-                list_buffer = list(step_buffer)
+                list_buffer.append(next_step)
+                list_buffer.pop(0)
                 total_reward += reward
                 # TODO add prioirity
                 experience = self.experience_creator(state=list_buffer[:-1],
@@ -302,14 +301,15 @@ class Agent:
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
             self.tensorboard_log(name="move_per_second", data=moves_per_second, step=game_count)
-            self.tensorboard_log(name="off_policy_score_per_frames", data=total_reward, step=total_steps)
+            self.tensorboard_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
+            self.tensorboard_log(name="off_policy_score", data=total_reward, step=total_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
             moving_average -= moving_average / game_count
             moving_average += total_reward / game_count
             self.tensorboard_log(name="rolling_average", data=rolling_average, step=game_count)
             self.tensorboard_log(name="moving_average", data=moving_average, step=game_count)
 
-            self.tensorboard_log(name="epsilon_rate_per_frame", data=self.random_action_rate, step=total_steps)
+            self.tensorboard_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
             self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
 
@@ -325,17 +325,20 @@ class Agent:
     def save_model(self, file_name):
         pass
 
-    def play_game(self, buffer=VoidBuffer(), random_rate=0.0, verbose: int = 0):
+    def play_game(self,
+                  buffer=VoidBuffer(),
+                  random_rate=0.0,
+                  verbose: int = 0):
         total_reward = 0
         #self.scoring_env.seed(self.seed())
         #self.env.action_space.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
         current_lives = self.scoring_env.env.ale.lives()
         step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
-        list_buffer = list(step_buffer)
+        list_buffer = [step for _ in range(self.window + 1)]
         step_count = 0
 
-        starting_step = np.random.randint(0, self.random_starting_actions_max // self.window)  # should I be dividing this?
+        starting_step = np.random.randint(0, self.random_starting_actions_max)  # should I be dividing this?
         for _ in range(starting_step):
             self.scoring_env.step(self.get_random_action())
         done = False
@@ -350,8 +353,8 @@ class Agent:
             total_reward += reward
             step_count += 1
             step = self.observation_processor(step)
-            step_buffer.append(step)
-            list_buffer = list(step_buffer)
+            list_buffer.append(step)
+            list_buffer.pop(0)
 
             if 'ale.lives' in info:
                 lives = info['ale.lives']
