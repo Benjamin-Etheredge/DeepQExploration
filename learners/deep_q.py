@@ -73,7 +73,7 @@ class DeepQ:
 
     #@profile
     #@jit
-    def update(self, sample):
+    def update(self, sample: buffer.VoidBuffer):
         # TODO refactor
         #TODO combine model predections
         #states = np.array(sample.states)
