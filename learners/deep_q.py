@@ -3,8 +3,9 @@ np.random.seed(4)
 import random
 random.seed(4)
 
+import buffer
+
 class DeepQ:
-    #@profile
     def __init__(self,
                  name,
                  q_prime_function,
@@ -23,7 +24,6 @@ class DeepQ:
         #self.update_count = 0
         #self.summary_writer = tf.summary.create_file_writer(log_dir)
 
-    #@profile
     def build_model(self, input_dimension, output_dimension,
                     nodes_per_layer: int = 128,  # TODO difference between 128 vs 256
                     layer_count: int = 1,
@@ -41,20 +41,16 @@ class DeepQ:
         #self.tensorboard_callback.set_model(self.model)
         self.update_target_model()
 
-    #@profile
     def get_name(self):
         return self.name
 
-    #@profile
     #@jit
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
 
-    #@profile
     def log(self):
         pass
 
-    #@profile
     #@jit
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
@@ -63,6 +59,7 @@ class DeepQ:
         if len(np_state.shape) > 1:
             np_state = np_state[:, np.newaxis, :, :]
 
+        #return self.action_selector.predict_on_batch(state)
         return self.action_selector.predict_on_batch([np_state[0], np_state[1], np_state[2], np_state[3]])[0]
 
         # TODO test without target
@@ -71,7 +68,6 @@ class DeepQ:
         # target_prime_action_values = self.targetModel.predict(statePrimes)
         # return target_prime_action_values
 
-    #@profile
     #@jit
     def update(self, sample: buffer.VoidBuffer):
         # TODO refactor

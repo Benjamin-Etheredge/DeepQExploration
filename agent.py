@@ -217,9 +217,9 @@ class Agent:
                 max_on_policy_score = max(on_policy_scores)
                 median_on_policy_score = np.median(on_policy_scores)
                 best_on_policy_score = max(max_on_policy_score, best_on_policy_score)
-                self.tensorboard_log(name="best_on_policy_score_per_frames", data=best_on_policy_score, step=total_steps)
-                self.tensorboard_log(name="median_on_policy_score_per_frames", data=median_on_policy_score, step=total_steps)
-                self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
+                self.tensorboard_log(name="max_on_policy_score", data=max_on_policy_score, step=total_steps)
 
             game_count += 1
 
@@ -298,8 +298,8 @@ class Agent:
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
             self.tensorboard_log(name="move_per_second", data=moves_per_second, step=game_count)
-            self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
-            self.tensorboard_log(name="off_policy_score_per_frames", data=total_reward, step=total_steps)
+            self.tensorboard_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
+            self.tensorboard_log(name="off_policy_score", data=total_reward, step=total_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
             moving_average -= moving_average / game_count
             moving_average += total_reward / game_count
@@ -322,7 +322,10 @@ class Agent:
     def save_model(self, file_name):
         pass
 
-    def play_game(self, buffer=VoidBuffer(), random_rate=0.0, verbose: int = 0):
+    def play_game(self,
+                  buffer=VoidBuffer(),
+                  random_rate=0.0,
+                  verbose: int = 0):
         total_reward = 0
         #self.scoring_env.seed(self.seed())
         #self.env.action_space.seed(self.seed())
