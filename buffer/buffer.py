@@ -64,8 +64,16 @@ class ReplayBuffer:
             next_states.append(item.next_state)
             rewards.append(item.reward)
             is_dones.append(item.isDone)
-        return np.array(states, dtype=np.uint8), np.array(actions, dtype=np.uint8), np.array(next_states, dtype=np.uint8), \
-               np.array(rewards), np.array(is_dones, dtype=np.bool_)
+        frame_count = len(states[0])
+
+        states = [np.array([state[frame_idx] for state in states], dtype=np.uint8) for frame_idx in range(frame_count)]
+        actions = np.array(actions, dtype=np.uint8)
+        #next_states = [np.array([state[frame_idx] for frame_idx in range(frame_count)], dtype=np.uint8) for state in next_states]
+        next_states = [np.array([state[frame_idx] for state in next_states], dtype=np.uint8) for frame_idx in range(frame_count)]
+        rewards = np.array(rewards, dtype=np.float32)
+        is_dones = np.array(is_dones, dtype=np.bool_)
+
+        return states, actions, next_states, rewards, is_dones
 
     def append(self, experience):
         if self.is_full():
