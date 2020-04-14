@@ -6,7 +6,8 @@ import time
 # TODO cleanup imports
 import gym
 from agent import Agent
-from buffer import ReplayBuffer, AtariExperience
+from buffer import ReplayBuffer
+from utils.utils import convert_atari_frame
 from experience import Experience
 from learners import DeepQFactory
 import random
@@ -152,7 +153,7 @@ class TestAgent(TestCase):
             random_choice_min_rate=0.05,
             nodes_per_layer=512,
             window=4,
-            data_func=AtariExperience.gray_scale,
+            data_func=convert_atari_frame,
             conv_nodes=[32, 64, 64],
             kernel_size=[8, 4, 3],
             conv_stride=[4, 2, 1],

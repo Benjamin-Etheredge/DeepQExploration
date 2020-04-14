@@ -1,35 +1,12 @@
-from collections import deque
-
 import numpy as np
+
 np.random.seed(4)
 
 import random
 random.seed(4)
 
-#from PIL import Image
 
 # TODO implement priority replay buffer
-from experience import Experience
-
-
-def rgb2gray(rgb):
-    return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
-
-class AtariExperience():
-
-    @staticmethod
-    def gray_scale(img):
-        #return mean(array(img[::2, ::2]), axis=2).astype(np.uint8) # TODO why does this leak memory?
-        #return np.dot(array(img)[...,:3], [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
-        #return mean(array(img), axis=2)[::2, ::2].astype(np.uint8)
-        return np.dot(np.array(img), [0.299, 0.587, 0.144])[::2, ::2].astype(np.uint8)
-        #return Image.fromarray(img, 'RGB').convert('L').resize()
-
-
-def clipped_atari(reward, *args, **kwargs):
-    reward = min(1, max(reward, -1))
-    return AtariExperience(reward=reward, *args, **kwargs)
-
 
 class ReplayBuffer:
 
