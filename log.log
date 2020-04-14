@@ -1,0 +1,20 @@
+docker build -t betheredge/dev -f Dockerfile .
+Sending build context to Docker daemon  4.181MB
+Step 1/5 : FROM tensorflow/tensorflow:latest-gpu-py3
+ ---> e2a4af785bdb
+Step 2/5 : RUN apt-get update &&     apt-get install -y graphviz swig libsm6 libxext6 libxrender-dev libz-dev &&     pip install objgraph memory_profiler guppy3 wheel pydot graphviz matplotlib gym[atari] gym[box2d] box2d-py numba     && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 52b1047c268d
+Step 3/5 : COPY . /app
+ ---> ec157404ce09
+Step 4/5 : WORKDIR /app
+ ---> Running in 5aa2a8778443
+Removing intermediate container 5aa2a8778443
+ ---> 5bbd281968be
+Step 5/5 : CMD bash
+ ---> Running in 590fb78a0c1b
+Removing intermediate container 590fb78a0c1b
+ ---> 0b9b6b803a6f
+Successfully built 0b9b6b803a6f
+Successfully tagged betheredge/dev:latest
+docker run --rm --gpus all -v /home/ben/DeepQExploration:/app betheredge/dev python -m unittest test_agent.TestAgent.test_profile_Breakout
