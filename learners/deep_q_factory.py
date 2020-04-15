@@ -150,7 +150,8 @@ class DeepQFactory:
 
         # TODO find better way to creat model. Should be able to reach into netowrk and grap/copy layers
         #      this is basically a playground for building tensorflow models
-        input_dimensions = (int(input_dimensions[0])//2, int(input_dimensions[1])//2)
+        #input_dimensions = (int(input_dimensions[0])//2, int(input_dimensions[1])//2)
+        input_dimensions = (84, 84) # TODO ... so bad
         #TODO test setting batch size for speedup
         state_frames = [Input(shape=input_dimensions, name=f"state_frame_{idx}", dtype=tf.uint8, batch_size=32) for idx in range(window)]
         action_selector_frames = [Input(shape=input_dimensions, name=f"action_selection_frame_{idx}", dtype=tf.uint8, batch_size=1) for idx in range(window)]
