@@ -15,6 +15,13 @@ import tensorflow as tf
 tf.random.set_seed(4)
 tf.compat.v1.set_random_seed(4)
 
+tf.config.set_soft_device_placement(True) # Don't think this affect performance much
+tf.debugging.set_log_device_placement(True)
+
+#DEVICE = 'gpu:0' if tf.test.is_gpu_available() else 'cpu'
+# TODO explore manually placing action seleciton network on CPU. 
+#      tensorflow doesn't seem to like it but why?
+
 class DeepQFactory:
     # Different Q-prime computating functions
     @staticmethod
