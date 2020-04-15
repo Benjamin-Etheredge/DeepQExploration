@@ -5,6 +5,7 @@ random.seed(4)
 
 import buffer
 
+# TODO subclass keras model
 class DeepQ:
     def __init__(self,
                  name,
