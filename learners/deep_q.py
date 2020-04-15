@@ -30,7 +30,7 @@ class DeepQ:
                     gamma: float = 0.99,
                     learning_rate: float = 0.001, *args, **kwargs):
         self.gamma = gamma
-        self.model, self.target_model, self.action_selector, self.train = self.build_model_function(input_dimension, output_dimension,
+        self.model, self.target_model, self.action_selector = self.build_model_function(input_dimension, output_dimension,
                                                                 nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
         #tf.summary.
         #self.model.name = "Live_Network"
@@ -86,7 +86,7 @@ class DeepQ:
         #next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
-        losses = self.train.train_on_batch([*states, actions, *next_states, rewards, is_dones])
+        losses = self.model.train_on_batch([*states, actions, *next_states, rewards, is_dones])
 
         #losses = self.train.train_on_batch(states, np.array(actions), next_states[:, 0, :], next_states[:, 1, :], next_states[:, 2, :], next_states[:, 3, :],
         '''

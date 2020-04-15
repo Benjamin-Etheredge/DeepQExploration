@@ -236,16 +236,18 @@ class DeepQFactory:
                     value_double_deep_q_network = dense_value_layer(value_double_deep_q_network)
 
         if is_dueling:
+            # Advantage Functionality
             advantage_values_layer = Dense(output_dimension, activation='linear', name=f'advantage')
             advantage_values = advantage_values_layer(hidden_layer1)
+            action_selector_advantage = advantage_values_layer(action_selector)
+            target_advantage_values = Dense(output_dimension, activation='linear', name=f'target_advantage')(hidden_layer2)
+
+            # State Value Functionality
             state_value_layer = Dense(1, activation='linear', name="state_value")
             state_value = state_value_layer(state_value_network)
-
-            action_selector_advantage = advantage_values(action_selector)
+            target_state_value = Dense(1, activation='linear', name="target_state_value")(target_state_value_network)
             action_selector_value = state_value_layer(value_action_selector)
 
-            target_advantage_values = Dense(output_dimension, activation='linear', name=f'target_advantage')(hidden_layer2)
-            target_state_value = Dense(1, activation='linear', name="target_state_value")(target_state_value_network)
 
             action_values_layer = DuelingCombiningLayer(name="action_values")
             action_values = action_values_layer([advantage_values, state_value])
@@ -280,8 +282,6 @@ class DeepQFactory:
                 return tf.where(cond, squared_loss, linear_loss)
             return huber_loss
 
-        model = Model(inputs=state_frames, outputs=action_values)
-
         target = Model(inputs=next_state_frames, outputs=target_action_values)
         # TODO
         if double_deep_q:
@@ -301,6 +301,7 @@ class DeepQFactory:
             q_prime_value = QPrimeLayer()([target_action_values, adjusted_reward, is_done])
 
         test = BellmanLayer(name="actual_action_values")([action_values, action, q_prime_value])
+        # The model doesn't NEED output but keras REQUIRES it to have some. Maybe can be fixed with subclassing.
         trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=action_values)
 
         trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_mse_loss(action_values, test))
@@ -309,4 +310,4 @@ class DeepQFactory:
         #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
         #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
-        return model, target, action_selector, trainable
+        return trainable, target, action_selector
