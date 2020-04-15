@@ -13,7 +13,7 @@ def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.299, 0.587, 0.144])
 
 
-def pil_gray_scale(frame, height, width):
+def pil_gray_scale(frame):
     return np.array(Image.fromarray(frame).resize((WIDTH, HEIGHT)).convert('L'))
     #return Image.from_array(frame).resize(WIDTH, HEIGHT).convert('L')
 
