@@ -333,9 +333,8 @@ class Agent:
         #self.scoring_env.seed(self.seed())
         #self.env.action_space.seed(self.seed())
         step = self.observation_processor(self.scoring_env.reset())
-        current_lives = self.scoring_env.env.ale.lives()
-        step_buffer = deque([step for _ in range(self.window + 1)], self.window + 1)
         list_buffer = [step for _ in range(self.window + 1)]
+        current_lives = self.scoring_env.env.ale.lives()
         step_count = 0
 
         starting_step = np.random.randint(0, self.random_starting_actions_max)  # should I be dividing this?
