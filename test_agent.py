@@ -147,9 +147,9 @@ class TestAgent(TestCase):
             layer_count=1,
             #buffer_creator=AtariBuffer,
             #learning_rate=0.0000625,
-            #target_network_interval=32000,  # Rainbow value
-            target_network_interval=10000,
-            random_choice_min_rate=0.05,
+            target_network_interval=32000,  # Rainbow value
+            #target_network_interval=10000,
+            random_choice_min_rate=0.10,
             nodes_per_layer=512,
             window=4,
             data_func=convert_atari_frame,
