@@ -245,7 +245,10 @@ class Agent:
             # e.g. reaching the step limit should not have Q Prime set equal to 0.
             starting_step = np.random.randint(0, self.random_starting_actions_max)  #should I be dividing this?
             for _ in range(starting_step):
-                self.env.step(self.get_random_action())
+                step, _, is_done, _ = self.env.step(self.get_random_action())
+                step = self.observation_processor(step)
+                list_buffer.append(step)
+                list_buffer.pop(0)
             while not is_done:
                 if verbose > 3:
                     self.env.render()
@@ -340,10 +343,13 @@ class Agent:
         current_lives = self.scoring_env.env.ale.lives()
         step_count = 0
 
+        done = False
         starting_step = np.random.randint(0, self.random_starting_actions_max)  # should I be dividing this?
         for _ in range(starting_step):
-            self.scoring_env.step(self.get_random_action())
-        done = False
+            step, _, done, _ = self.scoring_env.step(self.get_random_action())
+            step = self.observation_processor(step)
+            list_buffer.append(step)
+            list_buffer.pop(0)
         while not done:
             if verbose > 3:
                 self.scoring_env.render()
