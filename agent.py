@@ -306,14 +306,14 @@ class Agent:
                 self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
-            self.tensorboard_log(name="move_per_second", data=moves_per_second, step=game_count)
+            self.tensorboard_log(name="move_per_second", data=moves_per_second, step=total_steps)
             self.tensorboard_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
             self.tensorboard_log(name="off_policy_score", data=total_reward, step=total_steps)
             self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
             moving_average -= moving_average / game_count
             moving_average += total_reward / game_count
-            self.tensorboard_log(name="rolling_average", data=rolling_average, step=game_count)
-            self.tensorboard_log(name="moving_average", data=moving_average, step=game_count)
+            self.tensorboard_log(name="rolling_average", data=rolling_average, step=total_steps)
+            self.tensorboard_log(name="moving_average", data=moving_average, step=total_steps)
 
             self.tensorboard_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
             self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
