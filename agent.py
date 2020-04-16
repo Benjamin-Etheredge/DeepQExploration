@@ -1,5 +1,6 @@
 # TODO test with starting with large window and reducing size
 # TODO test with randomly removing items from deque instead of using a sliding window
+# TODO add new q value network for randomly sampling q values to test convergence of predicted q values.
 import time
 from datetime import datetime
 from timeit import default_timer as timer
