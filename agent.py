@@ -130,6 +130,7 @@ class Agent:
             self.randomChoiceDecayRate = float(power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
+        self.turn_skip = 4
         self.prepare_buffer()
 
     def seed(self):
@@ -281,8 +282,9 @@ class Agent:
                 self.replay_buffer.append(experience)
 
                 if self.replay_buffer.is_ready():
-                    loss, learner_info = self.update_learner()
-                    self.tensorboard_log(name="loss", data=loss, step=total_steps)
+                    if game_steps % self.turn_skip == 0:
+                        loss, learner_info = self.update_learner()
+                        self.tensorboard_log(name="loss", data=loss, step=total_steps)
 
                     self.decay_epsilon()
 
