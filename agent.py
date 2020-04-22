@@ -212,6 +212,7 @@ class Agent:
         moving_average = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
 
+            '''
             if game_count % self.on_policy_check_interval == 0:
                 # Use max instead of min to be closer to the other publications
                 # on_policy_score = np.mean([self.play_game(random_rate=0.0) for _ in range(4)])
@@ -223,6 +224,7 @@ class Agent:
                     self.tensorboard_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
                 self.tensorboard_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
                 self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
+            '''
 
             game_count += 1
 
