@@ -11,24 +11,25 @@ random.seed(4)
 class ReplayBuffer:
 
     def __init__(self,
-                 max_length: int = 100000,
-                 start_length: int = None,
+                 max_length: int,
+                 start_length: int,
                  buffer=None):
 
-        self.max_length = max_length
+        assert max_length >= start_length, "Max length must be greater than or equal to start length"
+        self.max_length: int = max_length
 
         if start_length is None:
-            start_length = max_length
-        self.start_length = start_length
+            start_length: int = max_length
+        self.start_length: int = start_length
 
         # Switched form deque due to slow indexing
         if buffer is not None:
             #self.buffer = deque([], len(buffer))
             #self.buffer.extend(buffer)
-            self.buffer = list(buffer)
+            self.buffer: list = list(buffer)
         else:
             #self.buffer = deque([], self.max_length)
-            self.buffer = []
+            self.buffer: list = []
 
     @property
     def experience_count(self):
@@ -38,7 +39,8 @@ class ReplayBuffer:
         return len(self.buffer)
 
     def dequeue(self):
-        self.buffer.pop(0)
+        if self.experience_count > 0:  # if the list is empty, that's fine
+            self.buffer.pop(0)
 
     def prep(self, first_state):
         pass
@@ -55,20 +57,16 @@ class ReplayBuffer:
         next_states = []
         rewards = []
         is_dones = []
-        #items = [[np.stack(item.state, axis=2), item.action, np.stack(item.next_state, axis=2), item.reward, item.isDone] for item in self.buffer]
-        #items = [array(value) for value in items]
-        #return *items
         for item in self.buffer:
             states.append(item.state)
             actions.append(item.action)
             next_states.append(item.next_state)
             rewards.append(item.reward)
-            is_dones.append(item.isDone)
+            is_dones.append(item.is_done)
         frame_count = len(states[0])
 
         states = [np.array([state[frame_idx] for state in states], dtype=np.uint8) for frame_idx in range(frame_count)]
         actions = np.array(actions, dtype=np.uint8)
-        #next_states = [np.array([state[frame_idx] for frame_idx in range(frame_count)], dtype=np.uint8) for state in next_states]
         next_states = [np.array([state[frame_idx] for state in next_states], dtype=np.uint8) for frame_idx in range(frame_count)]
         rewards = np.array(rewards, dtype=np.float32)
         is_dones = np.array(is_dones, dtype=np.bool_)
@@ -84,12 +82,15 @@ class ReplayBuffer:
         # return self.reservoirSampling(numberOfSamples)
         return self.random_sample(sample_size)
 
+    def random_indices(self, sample_count):
+        return random.sample(range(self.experience_count), sample_count)
+
     def random_sample(self, sample_count):
         # numpy choice is way slower than random.sample
         # sample_idxs = np.random.choice(range(len(self.buffer)), size=numberOfSamples)
-        sample_idxs = random.sample(range(len(self.buffer)), sample_count)
+        sample_idxs = random.sample(range(self.experience_count), sample_count)
         samples = [self.buffer[idx] for idx in sample_idxs]
-        return sample_idxs, ReplayBuffer(sample_count, buffer=samples)
+        return sample_idxs, ReplayBuffer(sample_count, sample_count, buffer=samples)
         #samples = np.random.choice(self.buffer, size=sample_count, replace=False)
         #return None, ReplayBuffer(sample_count, buffer=samples)
 
