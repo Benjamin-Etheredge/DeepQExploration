@@ -47,22 +47,22 @@ class TestAgent(TestCase):
             self.assertGreaterEqual(score, reward_threshold)
 
     def play(self, name, learner,
+              nodes_per_layer: int,
+              layer_count,
+              learning_rate: float,
+              random_choice_min_rate: float,
+              sample_size: int,
+              verbose: float,
+              max_episodes: int = 9999999,
               name_prefix="",
-              max_episodes=1000000,
-              nodes_per_layer=128,
-              layer_count=2,
-              learning_rate=0.001,
-              random_choice_min_rate=0.00,
-              sample_size=32,
-              verbose=0,
               experience_creator=Experience,
               buffer_creator=ReplayBuffer,
               data_func=None,
-              window=4,
+              window: int = 4,
               target_network_interval=None,
               start_length=200000,
               end_length=1000000,
-              random_decay_end=4000000, # Decay rate used for DQN in Rainbow.
+              random_decay_end=4000000,  # Decay rate used for DQN in Rainbow.
               *args, **kwargs):
 
         # Seed random variables
@@ -116,7 +116,7 @@ class TestAgent(TestCase):
             target_network_interval=target_network_interval,
             random_decay_end=random_decay_end,
             name_prefix=name_prefix)
-        score = agent.play(max_episodes * max_episode_steps, verbose=0)
+        score = agent.play(max_episodes * max_episode_steps, verbose=verbose)
         #score = agent.score_model(100, verbose=0)
 
         #self.assertGreaterEqual(score, reward_threshold)
