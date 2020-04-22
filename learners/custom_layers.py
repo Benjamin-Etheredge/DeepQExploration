@@ -70,7 +70,7 @@ class DoubleQPrimeLayer(Layer):
         new_values = tf.where(squeezed_done, zeroes, action_values)
         #new_values = tf.where(is_done, tf.zeros(is_done.shape[0]), K.max(next_state_action_values, axis=1))
         #return new_values
-        squeezed_reward = tf.squeeze(reward, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
+        squeezed_reward = tf.squeeze(reward, axis=[1]) # TODO must specify axis due to inference sometimes having a batch size of 1
         adjusted_q_prime = (new_values * self.gamma) + squeezed_reward
         return adjusted_q_prime
 
@@ -150,6 +150,7 @@ class BellmanLayer(tf.keras.layers.Layer):
         shape_a, shape_b = input_shape
         return [(shape_a[0], self.output_dim), shape_b[:-1]]
 
+
 class DuelingCombiningLayer(Layer):
 
     def __init__(self, **kwargs):
@@ -166,24 +167,6 @@ class DuelingCombiningLayer(Layer):
         advantage_average = K.mean(advantage_values, axis=1, keepdims=True)
         advantage = Subtract()([advantage_values, advantage_average])
         action_values = Add()([advantage, values])
-        return action_values
-
-class TestAdvantageLayer(Layer):
-
-    def __init__(self, **kwargs):
-        super(DuelingCombiningLayer, self).__init__(**kwargs)
-
-    def build(self, input_shape):
-       #assert isinstance(input_shape, list)
-        super(DuelingCombiningLayer, self).build(input_shape)  # Be sure to call this at the end
-
-    def call(self, x):
-        assert isinstance(x, list)
-        advantage_values, values = x
-
-        advantage_average = K.mean(advantage_values, axis=1)
-        advantage = Subtract()([advantage_values, advantage_average])
-        action_values = Add()([advantage_average, values])
         return action_values
 
 

@@ -249,7 +249,6 @@ class DeepQFactory:
             target_state_value = Dense(1, activation='linear', name="target_state_value")(target_state_value_network)
             action_selector_value = state_value_layer(value_action_selector)
 
-
             action_values_layer = DuelingCombiningLayer(name="action_values")
             action_values = action_values_layer([advantage_values, state_value])
             action_selector = action_values_layer([action_selector_advantage, action_selector_value])
