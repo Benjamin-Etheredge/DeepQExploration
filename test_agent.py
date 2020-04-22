@@ -136,8 +136,16 @@ class TestAgent(TestCase):
         "SpaceInvaders-v0"
     ]
 
-    def test_atari(self, environment_name, name_prefix="", *args, **kwargs):
-        self.test_play(
+    def test_watch_atari(self, *args, **kwargs):
+        kwargs['verbose'] = 10
+        return self.play_atari(*args, **kwargs)
+
+    def test_atari(self, *args, **kwargs):
+        kwargs['verbose'] = 1
+        return self.play_atari(*args, **kwargs)
+
+    def play_atari(self, environment_name, name_prefix="", *args, **kwargs):
+        return self.test_play(
             environment=environment_name,
             learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
             name_prefix=name_prefix,
@@ -161,11 +169,29 @@ class TestAgent(TestCase):
     def test_SpaceInvaders_v0(self):
         self.test_atari("SpaceInvaders-v0")
 
-    def test_SpaceInvaders_v4(self):
+    def test_watch_SpaceInvaders_v0(self):
+        self.test_watch_atari("SpaceInvaders-v0")
+
+    def test_SpaceInvaders_v4(self, *args, **kwargs):
         self.test_atari("SpaceInvaders-v4")
 
+    def test_Pong(self, *args, **kwargs):
+        self.test_atari("Pong-v4", *args, **kwargs)
+
+    def test_watch_breakout(self):
+        self.test_watch_atari('Breakout-v4')
+
+    def test_Breakout(self, *args, **kwargs):
+        self.test_atari("Breakout-v4", *args, **kwargs)
+
     def test_vanilla_Breakout(self):
-        self.test_atari("Breakout-v4", name_prefix="vanilla_")
+        self.test_Breakout(name_prefix="vanilla_")
+
+    def test_double_Breakout(self):
+        self.test_atari("Breakout-v4", name_prefix="double_", double_deep_q=True)
+
+    def test_duel_Breakout(self):
+        self.test_atari("Breakout-v4", name_prefix="duel_", is_dueling=True)
 
     def test_vanilla(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="vanilla_")
@@ -181,9 +207,6 @@ class TestAgent(TestCase):
 
     def test_clipped_double_duel(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="clipped_double_duel_", double_deep_q=True, is_dueling=True, clipped_double_deep_q=True)
-
-    def test_Breakout(self):
-        self.test_atari("Breakout-v4")
 
     def test_profile_Space(self):
         self.test_atari("SpaceInvaders-v0",
