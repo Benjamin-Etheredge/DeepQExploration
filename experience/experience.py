@@ -5,7 +5,7 @@ class Experience:
         self._action = action
         self._next_state = next_state
         self._reward = reward
-        self._isDone = is_done
+        self._is_done = is_done
 
     @property
     def state(self):
@@ -24,5 +24,17 @@ class Experience:
         return self._reward
 
     @property
-    def isDone(self):
-        return self._isDone
+    def is_done(self):
+        return self._is_done
+
+
+from dataclasses import dataclass
+
+
+@dataclass
+class DataExperience:
+    state: list
+    action: int
+    next_state: list
+    reward: float
+    is_done: bool
