@@ -202,7 +202,7 @@ class Agent:
         while not self.replay_buffer.is_ready():
             self.play_game(self.replay_buffer, random_rate=1.0)
 
-    def play(self, step_limit=float("inf"), verbose: int = 0):
+    def play(self, step_limit=float("inf"), verbose: int = 1):
 
         best_on_policy_score = float("-inf")
         best_off_policy_score = float("-inf")
