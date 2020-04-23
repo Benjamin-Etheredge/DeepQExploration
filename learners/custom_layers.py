@@ -56,6 +56,46 @@ class DoubleQPrimeLayer(Layer):
         q_prime = 0.
         # TODO should axis be zero?
         squeezed_done = tf.squeeze(is_done, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
+        #action_values_idxs = K.argmax(next_state_action_values, axis=1)
+        action_values_idxs = K.argmax(next_state_actual_values, axis=1)
+
+        cols = tf.cast(action_values_idxs, dtype=tf.int32)
+        rows = tf.range(tf.shape(action_values_idxs)[0])
+        indicies = tf.stack([rows, cols], axis=-1)
+
+        #action_values = tf.gather_nd(next_state_actual_values, indices=indicies)
+        action_values = tf.gather_nd(next_state_action_values, indices=indicies)
+
+        zeroes = tf.zeros((1,))
+        new_values = tf.where(squeezed_done, zeroes, action_values)
+        #new_values = tf.where(is_done, tf.zeros(is_done.shape[0]), K.max(next_state_action_values, axis=1))
+        #return new_values
+        squeezed_reward = tf.squeeze(reward, axis=[1]) # TODO must specify axis due to inference sometimes having a batch size of 1
+        adjusted_q_prime = (new_values * self.gamma) + squeezed_reward
+        return adjusted_q_prime
+
+
+class ReversedDoubleQPrimeLayer(Layer):
+
+    def __init__(self, **kwargs):
+        self.gamma = tf.constant(0.99)
+        super(DoubleQPrimeLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert isinstance(input_shape, list)
+        super(DoubleQPrimeLayer, self).build(input_shape)  # Be sure to call this at the end
+
+    def call(self, x):
+        assert isinstance(x, list)
+        next_state_actual_values, next_state_action_values, reward, is_done = x
+        #print("q call")
+        #print(state_action_values.shape)
+        #print(next_state_action_values.shape)
+        ##print(reward.shape)
+        #print(is_done.shape)
+        q_prime = 0.
+        # TODO should axis be zero?
+        squeezed_done = tf.squeeze(is_done, axis=[1]) # must specify axis due to inference sometimes having a batch size of 1
         action_values_idxs = K.argmax(next_state_action_values, axis=1)
 
         cols = tf.cast(action_values_idxs, dtype=tf.int32)
