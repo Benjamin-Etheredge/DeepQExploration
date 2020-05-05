@@ -305,8 +305,8 @@ class DeepQFactory:
         trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=action_values)
 
         #Etrainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_mse_loss(action_values, test))
-        trainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_huber_loss(action_values, test))
-        #trainable.compile(optimizer=RMSprop(lr=learning_rate), loss=custom_huber_loss(action_values, test))
+        #trainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_huber_loss(action_values, test))
+        trainable.compile(optimizer=RMSprop(lr=learning_rate), loss=custom_huber_loss(action_values, test))
         #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
         #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
