@@ -64,6 +64,7 @@ class Agent:
                  experience_creator=Experience,
                  observation_processor=array,
                  window=4,
+                 frame_skip=3,
                  target_network_interval=None,
                  random_decay_end=1000000,
                  name_prefix="",
@@ -80,6 +81,7 @@ class Agent:
         self.learner = learner
         self.replay_buffer = replay_buffer
         self.env = environment
+        self.env.frameskip = frame_skip
         #self.env.seed(self.seed())
         self.env.seed(seed)
         #self.env.action_space.seed(self.seed())
@@ -130,7 +132,8 @@ class Agent:
             self.randomChoiceDecayRate = float(power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
         self.iterations = 0
-        self.turn_skip = 4
+        self.update_interval = 4
+        self.frame_skip = frame_skip  # TODO push to custom gym wrapper
         self.prepare_buffer()
 
     def seed(self):
@@ -231,7 +234,7 @@ class Agent:
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
             list_buffer = [step for _ in range(self.window+1)]
-            self.replay_buffer.prep(step) # TODO is prep needed?
+            self.replay_buffer.prep(step)  # TODO is prep needed?
 
             current_lives = self.env.env.ale.lives()
             self.tensorboard_log(name="lives", data=current_lives, step=total_steps)
@@ -287,7 +290,7 @@ class Agent:
                 self.replay_buffer.append(experience)
 
                 if self.replay_buffer.is_ready():
-                    if game_steps % self.turn_skip == 0:
+                    if total_steps % self.update_interval == 0:
                         loss, learner_info = self.update_learner()
                         self.tensorboard_log(name="loss", data=loss, step=total_steps)
 
@@ -295,7 +298,7 @@ class Agent:
 
                     if self.should_update_target_model(total_steps):
                         self.tensorboard_log(name="target_model_updates",
-                                             data=int(total_steps / self.target_network_updating_interval),
+                                             data=total_steps // self.target_network_updating_interval,
                                              step=total_steps)
                         self.update_target_model()
 
