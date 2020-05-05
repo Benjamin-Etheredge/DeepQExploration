@@ -28,6 +28,7 @@ class Experience:
         return self._is_done
 
 
+'''
 from dataclasses import dataclass
 
 
@@ -38,3 +39,4 @@ class DataExperience:
     next_state: list
     reward: float
     is_done: bool
+'''

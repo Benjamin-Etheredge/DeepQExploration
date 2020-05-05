@@ -43,3 +43,6 @@ networks:
 
 test_env:
 	docker run --rm -v $(DIR):/app $(NS)/$(IMAGE_NAME) python test_env.py
+
+requirements:
+	docker run --rm -v $(DIR):/app $(NS)/$(IMAGE_NAME) pip freeze > requirements.txt
