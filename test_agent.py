@@ -52,7 +52,7 @@ class TestAgent(TestCase):
               learning_rate: float,
               random_choice_min_rate: float,
               sample_size: int,
-              verbose: float,
+              verbose: float = 1,
               max_episodes: int = 9999999,
               name_prefix="",
               experience_creator=Experience,
@@ -155,7 +155,8 @@ class TestAgent(TestCase):
             sample_size=32,
             layer_count=1,
             learning_rate=0.00025,
-            target_network_interval=32000,  # Rainbow value
+            #target_network_interval=32000,  # Rainbow value
+            target_network_interval=10000,  # Double Deep Q value
             random_choice_min_rate=0.01,
             nodes_per_layer=512,
             window=4,
@@ -173,6 +174,9 @@ class TestAgent(TestCase):
 
     def test_SpaceInvaders_v4(self, *args, **kwargs):
         self.test_atari("SpaceInvaders-v4")
+
+    def test_PongNoFrameSkip(self, *args, **kwargs):
+        self.test_atari("PongNoFrameskip-v4", *args, **kwargs)
 
     def test_Pong(self, *args, **kwargs):
         self.test_atari("Pong-v4", *args, **kwargs)
@@ -201,8 +205,27 @@ class TestAgent(TestCase):
     def test_duel(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="duel_", is_dueling=True)
 
+    def test_og_deep_q(self):
+        return self.test_play(
+            environment="Pong-v4",
+            learner_creator=DeepQFactory.create_atari_clipped_double_duel_deep_q,
+            name_prefix="og",
+            sample_size=32,
+            layer_count=1,
+            learning_rate=0.00025,
+            # target_network_interval=32000,  # Rainbow value
+            target_network_interval=10000,  # Double Deep Q value
+            random_choice_min_rate=0.05,
+            nodes_per_layer=256,
+            window=4,
+            data_func=convert_atari_frame,
+            conv_nodes=[16, 32],
+            kernel_size=[8, 4],
+            conv_stride=[4, 2],
+            random_decay_end=1000000)
+
     def test_double_duel(self):
-        self.test_atari("SpaceInvaders-v0", name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
+        self.test_Pong(name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
 
     def test_clipped_double_duel(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="clipped_double_duel_", double_deep_q=True, is_dueling=True, clipped_double_deep_q=True)
@@ -317,6 +340,6 @@ if __name__ == '__main__':
     #suite.addTest(TestAgent.test_SpaceInvaders_v0)
     #unittest.TextTestRunner().run(suite)
     suite = unittest.TestSuite()
-    suite.addTest(TestAgent("test_profile_Space"))
+    suite.addTest(TestAgent("test_profile_Breakout"))
     runner = unittest.TextTestRunner()
     runner.run(suite)
