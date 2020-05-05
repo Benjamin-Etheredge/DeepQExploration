@@ -71,6 +71,9 @@ class TestAgent(TestCase):
 
         env_name, max_episode_steps, reward_threshold = self.get_env_info(name)
         env = gym.make(env_name)
+        if verbose > 2:
+            # https://github.com/openai/gym/wiki/FAQ
+            env = gym.wrappers.Monitor(env, '.videos/' + str(time()) + '/')
 
 
         #self.assertEqual(name, env_name, "Gym did not return the correct information.")
