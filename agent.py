@@ -68,7 +68,7 @@ class Agent:
                  target_network_interval=None,
                  random_decay_end=1000000,
                  name_prefix="",
-                 random_starting_actions_max=50):
+                 random_starting_actions_max=10):
 
         # seeding agents individually to achieve reproducible results across parallel runs.
         if seed is None:
@@ -248,7 +248,7 @@ class Agent:
 
             # TODO for environments that reach the step limit, must specially handle case as not terminal
             # e.g. reaching the step limit should not have Q Prime set equal to 0.
-            starting_step = np.random.randint(0, self.random_starting_actions_max)  #should I be dividing this?
+            starting_step = np.random.randint(1, self.random_starting_actions_max)  #should I be dividing this?
             for _ in range(starting_step):
                 step, _, is_done, _ = self.env.step(self.get_random_action())
                 step = self.observation_processor(step)
@@ -349,7 +349,7 @@ class Agent:
         step_count = 0
 
         done = False
-        starting_step = np.random.randint(0, self.random_starting_actions_max)  # should I be dividing this?
+        starting_step = np.random.randint(1, self.random_starting_actions_max)  # should I be dividing this?
         for _ in range(starting_step):
             step, _, done, _ = self.scoring_env.step(self.get_random_action())
             step = self.observation_processor(step)
