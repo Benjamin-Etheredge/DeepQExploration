@@ -154,11 +154,12 @@ class TestAgent(TestCase):
             name_prefix=name_prefix,
             sample_size=32,
             layer_count=1,
-            learning_rate=0.00025,
+            learning_rate=0.00001,
+            #learning_rate=0.00025,
             #target_network_interval=32000,  # Rainbow value
             target_network_interval=10000,  # Double Deep Q value
             random_choice_min_rate=0.01,
-            nodes_per_layer=512,
+            nodes_per_layer=1024,
             window=4,
             data_func=convert_atari_frame,
             conv_nodes=[32, 64, 64],
@@ -225,7 +226,8 @@ class TestAgent(TestCase):
             random_decay_end=1000000)
 
     def test_double_duel(self):
-        self.test_Pong(name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
+        #self.test_Pong(name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
+        self.test_Breakout(name_prefix="double_duel_", double_deep_q=True, is_dueling=True)
 
     def test_clipped_double_duel(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="clipped_double_duel_", double_deep_q=True, is_dueling=True, clipped_double_deep_q=True)
@@ -239,7 +241,7 @@ class TestAgent(TestCase):
 
     def test_profile_Breakout(self):
         self.test_atari("Breakout-v4", 
-                        start_length=100000,
+                        start_length=10000,
                         end_length=100000,
                         random_decay_end=100000, 
                         max_episodes=250)
