@@ -239,7 +239,7 @@ class Agent:
             current_lives = self.env.env.ale.lives()
             self.tensorboard_log(name="lives", data=current_lives, step=total_steps)
             is_done = False
-            is_terminal = False
+            is_terminal = True
             total_reward = 0
             old_reward = 0
             old_steps = 0
@@ -248,15 +248,22 @@ class Agent:
 
             # TODO for environments that reach the step limit, must specially handle case as not terminal
             # e.g. reaching the step limit should not have Q Prime set equal to 0.
-            starting_step = np.random.randint(1, self.random_starting_actions_max)  #should I be dividing this?
-            for _ in range(starting_step):
-                step, _, is_done, _ = self.env.step(self.get_random_action())
-                step = self.observation_processor(step)
-                list_buffer.append(step)
-                list_buffer.pop(0)
             while not is_done:
                 if verbose > 3:
                     self.env.render()
+
+                if is_terminal:
+                    starting_step = np.random.randint(1, self.random_starting_actions_max)  #should I be dividing this?
+                    for _ in range(starting_step):
+                        # TODO should make random, but breakout has a STUPID fucking mechanic
+                        # step, _, done, _ = self.scoring_env.step(self.get_random_action())
+                        step, _, done, _ = self.scoring_env.step(1)
+                        step = self.observation_processor(step)
+                        #list_buffer.append(step)
+                        #list_buffer.pop(0)
+                    is_terminal = False
+                    list_buffer = [step for _ in range(self.window + 1)]
+
                 action_choice = self.get_next_action(list_buffer[1:])
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
                 total_steps += 1
@@ -349,15 +356,23 @@ class Agent:
         step_count = 0
 
         done = False
-        starting_step = np.random.randint(1, self.random_starting_actions_max)  # should I be dividing this?
-        for _ in range(starting_step):
-            step, _, done, _ = self.scoring_env.step(self.get_random_action())
-            step = self.observation_processor(step)
-            list_buffer.append(step)
-            list_buffer.pop(0)
+        is_terminal = True
         while not done:
             if verbose > 3:
                 self.scoring_env.render()
+
+            if is_terminal:
+                starting_step = np.random.randint(1, self.random_starting_actions_max)  # should I be dividing this?
+                for _ in range(starting_step):
+                    # TODO should make random, but breakout has a STUPID fucking mechanic
+                    # step, _, done, _ = self.scoring_env.step(self.get_random_action())
+                    step, _, done, _ = self.scoring_env.step(1)
+                    step = self.observation_processor(step)
+                    #list_buffer.append(step)  # TODO should i be letting the list_buffer see these? probably not
+                    #list_buffer.pop(0)
+                list_buffer = [step for _ in range(self.window + 1)]
+                is_terminal = False  # maybe not needed
+
             # TODO convert step_buffer to longer form and make it my window....
             # TODO but it probably won't make a huge difference since the np.arrays take way more space
             action_choice = self.get_next_action(list_buffer[1:], random_rate)
