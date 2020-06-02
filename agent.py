@@ -332,7 +332,7 @@ class Agent:
             self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
 
         assert total_steps > 0
-        return total_steps
+        return best_off_policy_score, rolling_average, total_steps
 
     def update_target_model(self):
         self.learner.update_target_model()
