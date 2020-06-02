@@ -41,10 +41,12 @@ class TestAgent(TestCase):
     ]
 
     def test_play(self, environment, learner_creator, *args, **kwargs):
-        score = self.play(environment, learner_creator(), *args, **kwargs)
+        best, rolling, steps = self.play(environment, learner_creator(), *args, **kwargs)
         _, _, reward_threshold = self.get_env_info(environment)
         with self.subTest(f"{environment}_{learner_creator().name}"):
-            self.assertGreaterEqual(score, reward_threshold)
+            self.assertGreaterEqual(best, reward_threshold)
+            self.assertGreaterEqual(rolling, reward_threshold)
+            self.assertGreaterEqual(steps, 1)
 
     def play(self, name, learner,
               nodes_per_layer: int,
@@ -54,6 +56,7 @@ class TestAgent(TestCase):
               sample_size: int,
               verbose: float = 1,
               max_episodes: int = 9999999,
+              max_steps: int = 40000000,
               name_prefix="",
               experience_creator=Experience,
               buffer_creator=ReplayBuffer,
@@ -119,11 +122,12 @@ class TestAgent(TestCase):
             target_network_interval=target_network_interval,
             random_decay_end=random_decay_end,
             name_prefix=name_prefix)
-        score = agent.play(max_episodes * max_episode_steps, verbose=verbose)
+        best_score, rolling_average_score, steps = agent.play(max_steps, verbose=verbose)
+        #best_score, rolling_average_score, steps = agent.play(max_episodes * max_episode_steps, verbose=verbose)
         #score = agent.score_model(100, verbose=0)
 
         #self.assertGreaterEqual(score, reward_threshold)
-        return score
+        return best_score, rolling_average_score, steps
 
     def parallel_play(self, environment, max_episodes, learner_creator, que=None):
         #with self.subTest(f"{environment}_{learner_creator().name}"):
@@ -159,7 +163,7 @@ class TestAgent(TestCase):
             #target_network_interval=32000,  # Rainbow value
             target_network_interval=10000,  # Double Deep Q value
             random_choice_min_rate=0.01,
-            nodes_per_layer=1024,
+            nodes_per_layer=512,
             window=4,
             data_func=convert_atari_frame,
             conv_nodes=[32, 64, 64],
@@ -180,7 +184,7 @@ class TestAgent(TestCase):
         self.test_atari("PongNoFrameskip-v4", *args, **kwargs)
 
     def test_Pong(self, *args, **kwargs):
-        self.test_atari("Pong-v4", *args, **kwargs)
+        self.test_atari("Pong-v4", max_steps=10000000 *args, **kwargs)
 
     def test_watch_breakout(self):
         self.test_watch_atari('Breakout-v4')
@@ -198,7 +202,7 @@ class TestAgent(TestCase):
         self.test_atari("Breakout-v4", name_prefix="duel_", is_dueling=True)
 
     def test_vanilla(self):
-        self.test_atari("SpaceInvaders-v0", name_prefix="vanilla_")
+        self.test_Pong(name_prefix="vanilla_")
 
     def test_double(self):
         self.test_atari("SpaceInvaders-v0", name_prefix="double_", double_deep_q=True)
