@@ -6,16 +6,10 @@ pipeline {
 
   }
   stages {
-    stage('Build') {
-      steps {
-        sh 'make build'
-        echo 'Made container'
-      }
-    }
-
     stage('Test') {
       steps {
         echo 'Step 2'
+        sh 'python -m unittest test_agent.TestAgent.test_vanilla'
       }
     }
 
