@@ -10,6 +10,12 @@ DIR := ${CURDIR}
 build: Dockerfile
 	docker build -t $(NS)/$(IMAGE_NAME) -f Dockerfile .
 
+main: build
+	docker run --rm --gpus all -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py
+
+main_cpu: build
+	docker run --rm -e CUDA_VISIBLE_DEVICES='-1' -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py
+
 bash: build
 	docker run --rm -v $(DIR):/app -v $(DIR)/logs:/logs $(IMAGE_NAME) bash
 
@@ -26,7 +32,7 @@ vanilla:
 	docker run --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_vanilla
 
 vanilla:
-	docker run --name vanilla --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_vanilla
+	docker run --name vanilla --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test.test_agent.TestAgent.test_vanilla
 double:
 	docker run --name double --rm --gpus all -v $(DIR):/app $(NS)/$(IMAGE_NAME) python -m unittest test_agent.TestAgent.test_double
 duel:
