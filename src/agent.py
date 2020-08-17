@@ -311,6 +311,8 @@ class Agent:
                         self.update_target_model()
                     if self.should_update_autoencoder(total_steps):
                         self.learner.update_autoencoder(self.replay_buffer.states)
+                total_steps += 1
+                game_steps += 1
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
