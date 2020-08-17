@@ -2,6 +2,7 @@ import numpy as np
 np.random.seed(4)
 import random
 random.seed(4)
+import tensorflow as tf
 
 import buffer
 
@@ -31,8 +32,11 @@ class DeepQ:
                     gamma: float = 0.99,
                     learning_rate: float = 0.001, *args, **kwargs):
         self.gamma = gamma
-        self.model, self.target_model, self.action_selector = self.build_model_function(input_dimension, output_dimension,
-                                                                nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
+        self.model, self.target_model, self.action_selector, \
+            (self.encoder, self.decoder, self.auto), (self.tencoder, self.tdecoder, self.tauto)= \
+                self.build_model_function(input_dimension, output_dimension,
+                                          nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
+        #self.autoencoder = ConvAutoencoder.build(*input_dimension)
         #tf.summary.
         #self.model.name = "Live_Network"
         #with tf.device('/cpu:0'):
@@ -48,6 +52,7 @@ class DeepQ:
     #@jit
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
+        self.tauto.set_weights(self.auto.get_weights())
 
     def log(self):
         pass
@@ -112,3 +117,10 @@ class DeepQ:
         '''
         return losses, None
 
+    def update_autoencoder(self, states):
+        stacked = np.stack(states, axis=-1)
+        self.auto.fit(stacked, stacked, 
+            batch_size=32,
+            epochs=10,
+            shuffle=True,
+            callbacks=[tf.keras.callbacks.EarlyStopping(monitor='loss', patience=1, verbose=1, restore_best_weights=False)])

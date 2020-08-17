@@ -160,7 +160,7 @@ class DeepQFactory:
         frame_stacker = Lambda(lambda x: tf.stack(x, axis=-1), name="stack_frames")
         states = tf.cast(frame_stacker(state_frames), dtype=tf.float32)
         next_states = tf.cast(frame_stacker(next_state_frames), dtype=tf.float32)
-        action_selector = tf.cast(frame_stacker(action_selector_frames), dtype=tf.float32)
+        action_selector_states = tf.cast(frame_stacker(action_selector_frames), dtype=tf.float32)
 
         action = Input(shape=(1,), batch_size=32, dtype=tf.uint8, name='action')
         is_done = Input(shape=(1,), batch_size=32, dtype=tf.bool, name='is_done')
@@ -170,7 +170,7 @@ class DeepQFactory:
         normalize_frames = Lambda(lambda x: x / 255.0, name="normalize_frames", dtype=tf.float32)
         scaled_layer_states = normalize_frames(states)
         scaled_layer_next_states = normalize_frames(next_states)
-        action_selector = normalize_frames(action_selector)
+        action_selector = normalize_frames(action_selector_states)
 
         #for idx, scaled_layer in enumerate([scaled_layer_states, scaled_layer_next_states]):
 
@@ -208,8 +208,35 @@ class DeepQFactory:
         hidden_layer2 = flatten(hidden_layer2)
         action_selector = flatten(action_selector)
 
+        #######################################
+        (encoder, decoder, autoencoder) = ConvAutoencoder.build(
+            *input_dimensions, window, filters=(32, 64), latentDim=32)
+        (tencoder, tdecoder, tautoencoder) = ConvAutoencoder.build(
+            *input_dimensions, window, filters=(32, 64), latentDim=32)
+
+        # TODO create layers as members to separate out model construction
+        encoded_layer = flatten(encoder(states))
+        tencoded_layer = flatten(tencoder(next_states))
+        aencoded_layer = flatten(encoder(action_selector_states))
+        #encoded_layer = flatten(encoder(state_frames))
+        #tencoded_layer = flatten(tencoder(next_state_frames))
+        #aencoded_layer = flatten(encoder(action_selector_frames))
+
+        hidden_layer1 = tf.keras.layers.Concatenate(axis=1)([encoded_layer, hidden_layer1])
+        hidden_layer2 = tf.keras.layers.Concatenate(axis=1)([tencoded_layer, hidden_layer2])
+        action_selector = tf.keras.layers.Concatenate(axis=1)([aencoded_layer, action_selector])
+
+        #######################################
+
+
+
         if double_deep_q:
             double_deep_q_network = flatten(double_deep_q_network)
+            #######################################
+            double_deep_q_network = tf.keras.layers.Concatenate(axis=1)([
+                tencoder(scaled_layer_states), double_deep_q_network
+            ])
+            #######################################
             if is_dueling:
                 value_double_deep_q_network = double_deep_q_network
 
@@ -307,8 +334,80 @@ class DeepQFactory:
         #Etrainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_mse_loss(action_values, test))
         #trainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_huber_loss(action_values, test))
         trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
-        #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
-        #trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate), loss={'values_0': tf.keras.losses.Huber()})
-        return trainable, target, action_selector
+        autoencoder.compile(loss="mse", optimizer=Adam(lr=1e-5))
+
+        return trainable, target, action_selector, (encoder, decoder, autoencoder), (tencoder, tdecoder, tautoencoder)
+        # TODO what if we use the encoder as the conv layer of deep q?
+
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Conv2DTranspose
+from tensorflow.keras.layers import LeakyReLU
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Reshape
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
+import numpy as np
+class ConvAutoencoder:
+    @staticmethod
+    def build(width, height, depth, filters=(32, 64), latentDim=16):
+        # initialize the input shape to be "channels last" along with
+        # the channels dimension itself
+        # channels dimension itself
+        inputShape = (height, width, depth)
+        chanDim = -1
+
+        # define the input to the encoder
+        inputs = Input(shape=inputShape)
+        x = inputs
+        #state_frames = [Input(shape=input_dimensions, name=f"next_state_frame_{i}", dtype=tf.uint8, batch_size=32) for i in range(window)]
+        #x = Lambda(lambda x: tf.stack(x, axis=-1), name="stack_frames")(state_frames)
+        #x = Lambda(lambda x: x / 255.0, name="normalize_frames", dtype=tf.float32)(x)
+        # loop over the number of filters
+        for f in filters:
+            # apply a CONV => RELU => BN operation
+            x = Conv2D(f, (3, 3), strides=2, padding="same")(x)
+            x = LeakyReLU(alpha=0.2)(x)
+            #x = BatchNormalization(axis=chanDim)(x)
+        # flatten the network and then construct our latent vector
+        volumeSize = K.int_shape(x)
+        x = Flatten()(x)
+        latent = Dense(latentDim)(x)
+        # build the encoder model
+        encoder = Model(inputs, latent, name="encoder")
+
+        # ---------------------------------------------------------
+
+        # start building the decoder model which will accept the
+        # output of the encoder as its inputs
+        latentInputs = Input(shape=(latentDim,))
+        x = Dense(np.prod(volumeSize[1:]))(latentInputs)
+        x = Reshape((volumeSize[1], volumeSize[2], volumeSize[3]))(x)
+        # loop over our number of filters again, but this time in
+        # reverse order
+        for f in filters[::-1]:
+            # apply a CONV_TRANSPOSE => RELU => BN operation
+            x = Conv2DTranspose(f, (3, 3), strides=2,
+                padding="same")(x)
+            x = LeakyReLU(alpha=0.2)(x)
+            #x = BatchNormalization(axis=chanDim)(x)
+
+        # apply a single CONV_TRANSPOSE layer used to recover the
+        # original depth of the image
+        x = Conv2DTranspose(depth, (3, 3), padding="same")(x)
+        outputs = Activation("sigmoid")(x)
+        outputs = Lambda(lambda x: x * 255.0, name="normalize_frames", dtype=tf.float32)(outputs)
+        # build the decoder model
+        decoder = Model(latentInputs, outputs, name="decoder")
+
+        # ---------------------------------------------------------
+
+        # our autoencoder is the encoder + decoder
+        autoencoder = Model(inputs, decoder(encoder(inputs)),
+            name="autoencoder")
+        # return a 3-tuple of the encoder, decoder, and autoencoder
+        return (encoder, decoder, autoencoder)

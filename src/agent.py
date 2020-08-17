@@ -154,6 +154,9 @@ class Agent:
     def should_update_learner(self):
         return self.replay_buffer.is_ready()
 
+    def should_update_autoencoder(self, iteration):
+        return iteration % (self.target_network_updating_interval*20) == 0
+
     def should_update_target_model(self, iteration):
         return iteration % self.target_network_updating_interval == 0
 
@@ -266,8 +269,6 @@ class Agent:
 
                 action_choice = self.get_next_action(list_buffer[1:])
                 # self.verbose_1_check(tf.summary.histogram, "action", action_choice, step=total_steps)
-                total_steps += 1
-                game_steps += 1
                 next_step, reward, is_done, info = self.env.step(action_choice)
                 if 'ale.lives' in info:
                     lives = info['ale.lives']
@@ -308,6 +309,8 @@ class Agent:
                                              data=total_steps // self.target_network_updating_interval,
                                              step=total_steps)
                         self.update_target_model()
+                    if self.should_update_autoencoder(total_steps):
+                        self.learner.update_autoencoder(self.replay_buffer.states)
 
             game_stop_time = time.time()
             elapsed_seconds = game_stop_time - game_start_time
