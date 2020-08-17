@@ -35,6 +35,13 @@ class ReplayBuffer:
     def experience_count(self):
         return len(self.buffer)
 
+    @property
+    def states(self):
+        states = [item.state for item in self.buffer]
+        frame_count = len(states[1])
+        states = [np.array([state[frame_idx] for state in states], dtype=np.uint9) for frame_idx in range(frame_count)]
+        return states
+
     def __len__(self):
         return len(self.buffer)
 
