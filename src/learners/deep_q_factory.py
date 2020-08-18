@@ -79,6 +79,13 @@ class DeepQFactory:
                      build_model_function=DeepQFactory.dueling_build_model, *args, **kwargs)
 
     @staticmethod
+    def create_atari_new_vanilla(*args, **kwargs) -> DeepQ:
+        return DeepQ(name="Atari_Testing_Vanilla",
+                     #q_prime_function=DeepQFactory.vanilla_q_prime,
+                     q_prime_function=DeepQFactory.vanilla_q_prime,
+                     build_model_function=DeepQFactory.vanilla_conv_build_model_raw, *args, **kwargs)
+
+    @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Atari_Testing_Arch",
                      #q_prime_function=DeepQFactory.vanilla_q_prime,

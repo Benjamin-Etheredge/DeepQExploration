@@ -36,6 +36,7 @@ def play(
               buffer_creator=ReplayBuffer,
               data_func=convert_atari_frame,
               window: int = 4,
+              frame_skip=4,
               target_network_interval=None,
               start_length=200000,
               end_length=1000000,
@@ -88,6 +89,7 @@ def play(
         experience_creator=experience_creator,
         observation_processor=data_func,
         window=window,
+        frame_skip=frame_skip,
         target_network_interval=target_network_interval,
         random_decay_end=random_decay_end,
         name_prefix=name_prefix)
@@ -106,8 +108,8 @@ if __name__ == "__main__":
     
     # Play args
     parser.add_argument("--environment", default="Breakout-v4", help="")
-    parser.add_argument("--random_choice_min_rate", default=0.01, help="number of dense nodes for encoder")
-    parser.add_argument("--sample_size", default=32, help="Number of epochs to run")
+    parser.add_argument("--random_choice_min_rate", default=0.01, help="Min Epsilon Rate")
+    parser.add_argument("--sample_size", default=32, help="Size of sample per update")
     parser.add_argument("--verbose", default=1, help="None")
     parser.add_argument("--max_episodes", default=999999999, help="None")
     parser.add_argument("--max_steps", default=40000000, help="None")
@@ -120,9 +122,12 @@ if __name__ == "__main__":
     parser.add_argument("--start_length",            default= 200000, help="None")
     parser.add_argument("--end_length",              default=1000000, help="None")
     parser.add_argument("--random_decay_end",        default=4000000, help="None")
+
+    # Agent Args
+    parser.add_argument("--frame_skip", default=4, help="None")
     
     # Learner Args
-    parser.add_argument("--learner_type", default="clipped_double_duel", help="")
+    parser.add_argument("--learner_type", default="vanilla", help="")
     parser.add_argument("--nodes_per_layer", default=512, help="")
     parser.add_argument("--layer_count", default=1, help="")
     parser.add_argument("--gamma", default=0.99, help="None")
@@ -134,19 +139,28 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    if args.learner_type == "vanilla":
+
+        #double_deep_q=True, is_dueling=True, clipped_double_deep_q=True
+    learner_args = {}
+    learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
+    if "vanilla" in args.learner_type:
+        learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
         #learner = DeepQFactory.create_vanilla_deep_q()
         pass
-    elif args.learner_type == "double":
+    elif "double" in args.learner_type:
+        learner_args['double_deep_q'] = True
         #learner = DeepQFactory.create_double_deep_q()
         pass
     elif args.learner_type == "clipped_double":
         #learner = DeepQFactory.create_clipped_double_deep_q()
         pass
     elif args.learner_type == "clipped_double_duel":
-        # TODO only one that works currently
-        learner = DeepQFactory.create_atari_clipped_double_duel_deep_q()
+        #learner = DeepQFactory.create_atari_new_vanilla()
+        learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
+        learner_args['clipped_double_deep_q'] = True
+
     elif args.learner_type == "duel":
+        learner_args['is_deuling'] = True
         #learner = DeepQFactory.create_double_duel_deep_q()
         pass
     elif args.learner_type == "double_duel":
@@ -158,7 +172,7 @@ if __name__ == "__main__":
     print(args)
     play(
         name=args.environment,
-        learner=learner,
+        #learner=learner,
         nodes_per_layer=args.nodes_per_layer,
         layer_count=args.layer_count,
         learning_rate=args.learning_rate,
@@ -172,6 +186,7 @@ if __name__ == "__main__":
         buffer_creator=args.buffer_creator,
         #data_func=args.data_func,
         window=args.window,
+        frame_skip=args.frame_skip,
         target_network_interval=args.target_network_interval,
         start_length=args.start_length,
         end_length=args.end_length,
@@ -179,7 +194,7 @@ if __name__ == "__main__":
         conv_nodes=args.conv_nodes,
         kernel_size=args.kernel_size,
         conv_stride=args.conv_stride,
-        double_deep_q=True, is_dueling=True, clipped_double_deep_q=True
+        **learner_args
     )
 
 
