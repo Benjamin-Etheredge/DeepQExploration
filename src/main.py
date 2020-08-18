@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("--buffer_creator", default=ReplayBuffer, help="None")
     #parser.add_argument("--data_func", default=None, help="None")
     parser.add_argument("--window", default=4, help="None")
-    parser.add_argument("--target_network_interval", default=  10000, help="None")
+    parser.add_argument("--target_network_interval", default=  32000, help="None")
     parser.add_argument("--start_length",            default= 200000, help="None")
     parser.add_argument("--end_length",              default=1000000, help="None")
     parser.add_argument("--random_decay_end",        default=4000000, help="None")
