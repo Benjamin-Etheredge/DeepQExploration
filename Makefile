@@ -14,7 +14,7 @@ main: build
 	docker run --rm --gpus all -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py
 
 pong: build
-	docker run --rm --gpus all -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py ----environment "Pong-v4"
+	docker run --rm --gpus all -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py --environment "Pong-v4"
 
 main_cpu: build
 	docker run --rm -e CUDA_VISIBLE_DEVICES='-1' -v $(DIR):/app -v $(DIR)/logs:/logs $(NS)/$(IMAGE_NAME) python src/main.py
