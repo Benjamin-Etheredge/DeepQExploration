@@ -90,7 +90,7 @@ class DeepQFactory:
     # Different Model Construction Methods.
     @staticmethod
     def vanilla_build_model(input_dimension, output_dimension, nodes_per_layer, hidden_layer_count, learning_rate):
-        inputs = Input(shape=(input_dimension,))
+        inputs = Input(shape=input_dimension)
         hidden_layer = inputs
         for _ in range(hidden_layer_count):
             hidden_layer = Dense(nodes_per_layer, activation='relu')(hidden_layer)
