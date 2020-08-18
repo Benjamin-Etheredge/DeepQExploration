@@ -347,7 +347,7 @@ class DeepQFactory:
 
         trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
-        autoencoder.compile(loss="mse", optimizer=Adam(lr=1e-5))
+        #autoencoder.compile(loss="mse", optimizer=Adam(lr=1e-5))
 
         #return trainable, target, action_selector, (encoder, decoder, autoencoder), (tencoder, tdecoder, tautoencoder)
         return trainable, target, action_selector
