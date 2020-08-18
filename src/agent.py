@@ -310,7 +310,8 @@ class Agent:
                                              step=total_steps)
                         self.update_target_model()
                     if self.should_update_autoencoder(total_steps):
-                        self.learner.update_autoencoder(self.replay_buffer.states)
+                        pass
+                        #self.learner.update_autoencoder(self.replay_buffer.states)
                 total_steps += 1
                 game_steps += 1
 

@@ -146,7 +146,8 @@ class DeepQFactory:
             window=4,
             double_deep_q=False,
             clipped_double_deep_q=False,
-            is_dueling=False):
+            is_dueling=False,
+            intermediate_features_diminsions=None):
 
         # TODO find better way to creat model. Should be able to reach into netowrk and grap/copy layers
         #      this is basically a playground for building tensorflow models
@@ -167,7 +168,9 @@ class DeepQFactory:
         reward = Input(shape=(1,), batch_size=32, name='reward')
         adjusted_reward = Lambda(lambda x: K.clip(x, -1, 1), name="clip_reward")(reward) if clip_reward else reward
 
+        layers = []
         normalize_frames = Lambda(lambda x: x / 255.0, name="normalize_frames", dtype=tf.float32)
+        layers.append(normalize_frames)
         scaled_layer_states = normalize_frames(states)
         scaled_layer_next_states = normalize_frames(next_states)
         action_selector = normalize_frames(action_selector_states)
@@ -187,6 +190,7 @@ class DeepQFactory:
                 activation=activation_name,
                 use_bias=False,
                 data_format='channels_last')
+            layers.append(conv_layer)
             hidden_layer1 = conv_layer(hidden_layer1)
             action_selector = conv_layer(action_selector)
             if double_deep_q:
@@ -204,38 +208,45 @@ class DeepQFactory:
                 name=f"target_conv2d_{idx}")(hidden_layer2)
 
         flatten = Flatten(name='flatten')
+        layers.append(flatten)
         hidden_layer1 = flatten(hidden_layer1)
         hidden_layer2 = flatten(hidden_layer2)
         action_selector = flatten(action_selector)
 
         #######################################
-        (encoder, decoder, autoencoder) = ConvAutoencoder.build(
-            *input_dimensions, window, filters=(32, 64), latentDim=32)
-        (tencoder, tdecoder, tautoencoder) = ConvAutoencoder.build(
-            *input_dimensions, window, filters=(32, 64), latentDim=32)
+        if intermediate_features_diminsions:
+            intermediate_features_layer = Input(shape=intermediate_features_diminsions, name='semi_supervised_features')
+            #(encoder, decoder, autoencoder) = ConvAutoencoder.build(
+                #*input_dimensions, window, filters=(32, 64, 128, 256), latentDim=512)
+            #(tencoder, tdecoder, tautoencoder) = ConvAutoencoder.build(
+                #*input_dimensions, window, filters=(32, 64, 128, 256), latentDim=512)
 
-        # TODO create layers as members to separate out model construction
-        encoded_layer = flatten(encoder(states))
-        tencoded_layer = flatten(tencoder(next_states))
-        aencoded_layer = flatten(encoder(action_selector_states))
-        #encoded_layer = flatten(encoder(state_frames))
-        #tencoded_layer = flatten(tencoder(next_state_frames))
-        #aencoded_layer = flatten(encoder(action_selector_frames))
+            # TODO create layers as members to separate out model construction
+            encoded_layer = flatten(encoder(states))
+            tencoded_layer = flatten(tencoder(next_states))
+            aencoded_layer = flatten(encoder(action_selector_states))
+            #encoded_layer = flatten(encoder(state_frames))
+            #tencoded_layer = flatten(tencoder(next_state_frames))
+            #aencoded_layer = flatten(encoder(action_selector_frames))
 
-        hidden_layer1 = tf.keras.layers.Concatenate(axis=1)([encoded_layer, hidden_layer1])
-        hidden_layer2 = tf.keras.layers.Concatenate(axis=1)([tencoded_layer, hidden_layer2])
-        action_selector = tf.keras.layers.Concatenate(axis=1)([aencoded_layer, action_selector])
+            hidden_layer1 = tf.keras.layers.Concatenate(axis=1)([encoded_layer, hidden_layer1])
+            hidden_layer2 = tf.keras.layers.Concatenate(axis=1)([tencoded_layer, hidden_layer2])
+            action_selector = tf.keras.layers.Concatenate(axis=1)([aencoded_layer, action_selector])
 
         #######################################
 
 
 
+
+        # TODO unroll and apply "layers" here
+
         if double_deep_q:
             double_deep_q_network = flatten(double_deep_q_network)
             #######################################
-            double_deep_q_network = tf.keras.layers.Concatenate(axis=1)([
-                tencoder(scaled_layer_states), double_deep_q_network
-            ])
+            if intermediate_features_diminsions:
+                double_deep_q_network = tf.keras.layers.Concatenate(axis=1)([
+                    tencoder(scaled_layer_states), double_deep_q_network
+                ])
             #######################################
             if is_dueling:
                 value_double_deep_q_network = double_deep_q_network
@@ -245,8 +256,10 @@ class DeepQFactory:
             value_action_selector = action_selector
             target_state_value_network = hidden_layer2
 
+        # TODO create layers in list then apply outside to break up function
         for _ in range(hidden_layer_count):
             dense_layer = Dense(nodes_per_layer, activation=activation_name)
+            layers.append(dense_layer)
             hidden_layer1 = dense_layer(hidden_layer1)
             action_selector = dense_layer(action_selector)
 
@@ -266,6 +279,7 @@ class DeepQFactory:
         if is_dueling:
             # Advantage Functionality
             advantage_values_layer = Dense(output_dimension, activation='linear', name=f'advantage')
+            layers.append(advantage_values_layer)
             advantage_values = advantage_values_layer(hidden_layer1)
             action_selector_advantage = advantage_values_layer(action_selector)
             target_advantage_values = Dense(output_dimension, activation='linear', name=f'target_advantage')(hidden_layer2)
@@ -287,9 +301,7 @@ class DeepQFactory:
             target_action_values = Dense(output_dimension, activation='linear', name=f'target_action_values')(hidden_layer2)
 
         #TODO switch back optimizers and huber
-        #model.compile(optimizer=keras.optimizers.Adam(lr=learning_rate, epsilon=1.5e-4), loss=tf.keras.losses.Huber())
 
-        #best_action = Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(action_values)
         action_selector_best_action = Lambda(lambda x: K.argmax(x, axis=1), name='best_action')(action_selector)
         action_selector = Model(inputs=action_selector_frames, outputs=action_selector_best_action)
 
@@ -298,6 +310,7 @@ class DeepQFactory:
                 return mean(K.square(correct_values - values), axis=-1)
             return loss
 
+        # Using closure here
         def custom_huber_loss(y_pred, y_true):
             def huber_loss(_1, _2, clip_delta=1.0):
                 error = y_true - y_pred
@@ -310,6 +323,7 @@ class DeepQFactory:
             return huber_loss
 
         target = Model(inputs=next_state_frames, outputs=target_action_values)
+
         # TODO
         if double_deep_q:
             if is_dueling:
@@ -331,13 +345,12 @@ class DeepQFactory:
         # The model doesn't NEED output but keras REQUIRES it to have some. Maybe can be fixed with subclassing.
         trainable = Model(inputs=[*state_frames, action, *next_state_frames, reward, is_done], outputs=action_values)
 
-        #Etrainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_mse_loss(action_values, test))
-        #trainable.compile(optimizer=Adam(lr=learning_rate, epsilon=1.5e-04), loss=custom_huber_loss(action_values, test))
         trainable.compile(optimizer=Adam(lr=learning_rate), loss=custom_huber_loss(action_values, test))
 
         autoencoder.compile(loss="mse", optimizer=Adam(lr=1e-5))
 
-        return trainable, target, action_selector, (encoder, decoder, autoencoder), (tencoder, tdecoder, tautoencoder)
+        #return trainable, target, action_selector, (encoder, decoder, autoencoder), (tencoder, tdecoder, tautoencoder)
+        return trainable, target, action_selector
         # TODO what if we use the encoder as the conv layer of deep q?
 
 from tensorflow.keras.layers import BatchNormalization

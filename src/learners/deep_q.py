@@ -32,8 +32,11 @@ class DeepQ:
                     gamma: float = 0.99,
                     learning_rate: float = 0.001, *args, **kwargs):
         self.gamma = gamma
-        self.model, self.target_model, self.action_selector, \
-            (self.encoder, self.decoder, self.auto), (self.tencoder, self.tdecoder, self.tauto)= \
+        #self.model, self.target_model, self.action_selector, \
+            #(self.encoder, self.decoder, self.auto), (self.tencoder, self.tdecoder, self.tauto)= \
+                #self.build_model_function(input_dimension, output_dimension,
+                                          #nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
+        self.model, self.target_model, self.action_selector = \
                 self.build_model_function(input_dimension, output_dimension,
                                           nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
         #self.autoencoder = ConvAutoencoder.build(*input_dimension)
@@ -93,6 +96,12 @@ class DeepQ:
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
         losses = self.model.train_on_batch([*states, actions, *next_states, rewards, is_dones], reset_metrics=False)
+        #print(len(states))
+        #print(len(states[0]))
+
+        #stacked = [np.stack(state) for state in states]
+        #print(stacked.shape)
+        #losses = self.autoencoder.train_on_batch([*states, actions, *next_states, rewards, is_dones], reset_metrics=False)
 
         #losses = self.train.train_on_batch(states, np.array(actions), next_states[:, 0, :], next_states[:, 1, :], next_states[:, 2, :], next_states[:, 3, :],
         '''
