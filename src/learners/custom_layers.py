@@ -35,6 +35,7 @@ class QPrimeLayer(Layer):
         adjusted_q_prime = (new_values * self.gamma) + squeezed_reward
         return adjusted_q_prime
 
+
 class DoubleQPrimeLayer(Layer):
 
     def __init__(self, **kwargs):
