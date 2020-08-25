@@ -142,7 +142,7 @@ class Agent:
         return seed
 
     # TODO figure out how to make verbose checking wrapper
-    def tensorboard_log(self, *args, **kwargs):
+    def metric_log(self, *args, **kwargs):
         if self.verbose >= 1:
             tag, value, step = kwargs['name'], kwargs['data'], kwargs['step']
             summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
@@ -240,7 +240,7 @@ class Agent:
             self.replay_buffer.prep(step)  # TODO is prep needed?
 
             current_lives = self.env.env.ale.lives()
-            self.tensorboard_log(name="lives", data=current_lives, step=total_steps)
+            self.metric_log(name="lives", data=current_lives, step=total_steps)
             is_done = False
             is_terminal = True
             total_reward = 0
@@ -274,15 +274,15 @@ class Agent:
                     lives = info['ale.lives']
                     is_terminal = lives < current_lives
                     if is_terminal:
-                        self.tensorboard_log(name="life_reward",
+                        self.metric_log(name="life_reward",
                                              data=total_reward-old_reward,
                                              step=total_steps)
-                        self.tensorboard_log(name="life_steps",
+                        self.metric_log(name="life_steps",
                                              data=game_steps-old_steps,
                                              step=total_steps)
                         old_reward = total_reward
                         old_steps = game_steps
-                        self.tensorboard_log(name="lives", data=lives, step=total_steps)
+                        self.metric_log(name="lives", data=lives, step=total_steps)
                     current_lives = lives
 
                 next_step = self.observation_processor(next_step)
@@ -300,12 +300,12 @@ class Agent:
                 if self.replay_buffer.is_ready():
                     if total_steps % self.update_interval == 0:
                         loss, learner_info = self.update_learner()
-                        self.tensorboard_log(name="loss", data=loss, step=total_steps)
+                        self.metric_log(name="loss", data=loss, step=total_steps)
 
                     self.decay_epsilon()
 
                     if self.should_update_target_model(total_steps):
-                        self.tensorboard_log(name="target_model_updates",
+                        self.metric_log(name="target_model_updates",
                                              data=total_steps // self.target_network_updating_interval,
                                              step=total_steps)
                         self.update_target_model()
@@ -321,21 +321,21 @@ class Agent:
             best_off_policy_score = max(best_off_policy_score, total_reward)
             if best_off_policy_score < total_reward:
                 best_off_policy_score = total_reward
-                self.tensorboard_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
+                self.metric_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
-            self.tensorboard_log(name="move_per_second", data=moves_per_second, step=total_steps)
-            self.tensorboard_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
-            self.tensorboard_log(name="off_policy_score", data=total_reward, step=total_steps)
-            self.tensorboard_log(name="steps_per_game", data=game_steps, step=game_count)
+            self.metric_log(name="move_per_second", data=moves_per_second, step=total_steps)
+            self.metric_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
+            self.metric_log(name="off_policy_score", data=total_reward, step=total_steps)
+            self.metric_log(name="steps_per_game", data=game_steps, step=game_count)
             moving_average -= moving_average / game_count
             moving_average += total_reward / game_count
-            self.tensorboard_log(name="rolling_average", data=rolling_average, step=total_steps)
-            self.tensorboard_log(name="moving_average", data=moving_average, step=total_steps)
+            self.metric_log(name="rolling_average", data=rolling_average, step=total_steps)
+            self.metric_log(name="moving_average", data=moving_average, step=total_steps)
 
-            self.tensorboard_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
-            self.tensorboard_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
-            self.tensorboard_log(name="total steps", data=total_steps, step=game_count)
+            self.metric_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
+            self.metric_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
+            self.metric_log(name="total steps", data=total_steps, step=game_count)
 
         assert total_steps > 0
         return best_off_policy_score, rolling_average, total_steps
