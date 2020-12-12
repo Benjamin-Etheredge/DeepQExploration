@@ -70,6 +70,7 @@ def play(
     # Scale gamma to approach zero near max_episode_steps
     #gamma = float(np.power(0.0001, 1. / max_episode_steps))
 
+    # TODO move out and inject learner
     learner.build_model(input_dimension=feature_count, output_dimension=action_count,
                         nodes_per_layer=nodes_per_layer,
                         learning_rate=learning_rate,
