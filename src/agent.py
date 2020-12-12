@@ -196,9 +196,10 @@ class Agent:
             self.random_action_rate = max(self.randomChoiceMinRate,
                                           (self.randomChoiceDecayRate * self.random_action_rate))
 
+
     def update_learner(self):
-        sample_idxs, sample = self.replay_buffer.sample(self.sample_size)
-        loss, learner_info = self.learner.update(sample)
+        sample_idxs, weights, sample = self.replay_buffer.sample(self.sample_size)
+        loss, learner_info = self.learner.update(Experience.training_items(sample), weights)
         self.replay_buffer.update(sample_idxs, loss)
         return loss, learner_info
 
