@@ -5,6 +5,7 @@ from agent import *
 from buffer import *
 import argparse
 from utils.utils import convert_atari_frame
+import mlflow
 
 # create logger with 'spam_application'
 
@@ -17,7 +18,6 @@ def get_env_info(env_name):
     ids = [env_spec for env_spec in all_envs if env_spec.id == env_name]
     env_spec = ids[0]
     return env_spec.id, env_spec.max_episode_steps, env_spec.reward_threshold
-
 
 
 def play(

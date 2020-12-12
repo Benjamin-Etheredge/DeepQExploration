@@ -147,6 +147,13 @@ class Agent:
             tag, value, step = kwargs['name'], kwargs['data'], kwargs['step']
             summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
             self.tensorboard_writer.add_summary(summary, step)
+            mlflow.log_metric(key=tag, value=value, step=step)
+    
+    
+    def log_artifict(self, artifact_path):
+        if self.verbose >= 1:
+            mlflow.log_artifact(artifact_path)
+
 
     def should_select_random_action(self, random_choice_rate):
         return np.random.uniform(0, 1) < random_choice_rate
@@ -218,7 +225,6 @@ class Agent:
         moving_average = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
 
-            '''
             if game_count % self.on_policy_check_interval == 0:
                 # Use max instead of min to be closer to the other publications
                 # on_policy_score = np.mean([self.play_game(random_rate=0.0) for _ in range(4)])
@@ -227,10 +233,16 @@ class Agent:
                 median_on_policy_score = np.median(on_policy_scores)
                 if best_on_policy_score < max_on_policy_score:
                     best_on_policy_score = max_on_policy_score
-                    self.tensorboard_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
-                self.tensorboard_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
-                self.tensorboard_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
-            '''
+                    self.metric_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
+                    self.learner.model.save_weights("best_on_policy_model.h5")
+                    mlflow.log_artifact("best_on_policy_model.h5")
+                    if verbose > 2:
+                        # https://github.com/openai/gym/wiki/FAQ
+                        
+                        env = gym.wrappers.Monitor(env, '.videos/' + str(time()) + '/')
+
+                self.metric_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
+                self.metric_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
             game_count += 1
 
@@ -322,16 +334,18 @@ class Agent:
             if best_off_policy_score < total_reward:
                 best_off_policy_score = total_reward
                 self.metric_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
+                self.learner.model.save_weights("best_off_policy_model.h5")
+                mlflow.log_artifact("best_off_policy_model.h5")
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
+            self.metric_log(name="rolling_average", data=rolling_average, step=total_steps)
             self.metric_log(name="move_per_second", data=moves_per_second, step=total_steps)
             self.metric_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
             self.metric_log(name="off_policy_score", data=total_reward, step=total_steps)
             self.metric_log(name="steps_per_game", data=game_steps, step=game_count)
-            moving_average -= moving_average / game_count
-            moving_average += total_reward / game_count
-            self.metric_log(name="rolling_average", data=rolling_average, step=total_steps)
-            self.metric_log(name="moving_average", data=moving_average, step=total_steps)
+            #moving_average -= moving_average / game_count
+            #moving_average += total_reward / game_count
+            #self.metric_log(name="moving_average", data=moving_average, step=total_steps)
 
             self.metric_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
             self.metric_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
