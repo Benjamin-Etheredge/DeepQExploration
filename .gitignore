@@ -1,3 +1,6 @@
 __pycache__
 logs
 mlruns
+best_on_policy_model.h5
+model.h5
+final_model.h5
