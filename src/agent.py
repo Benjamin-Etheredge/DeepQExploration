@@ -382,7 +382,7 @@ class Agent:
                 self.scoring_env.render()
 
             if is_terminal:
-                starting_step = np.random.randint(1, self.random_starting_actions_max)  # should I be dividing this?
+                starting_step = np.random.randint(1, self.random_starting_actions_max)  # should I be dividing this by frameskip?
                 for _ in range(starting_step):
                     # TODO should make random, but breakout has a STUPID fucking mechanic
                     # step, _, done, _ = self.scoring_env.step(self.get_random_action())
