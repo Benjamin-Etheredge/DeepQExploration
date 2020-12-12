@@ -4,6 +4,7 @@ import tensorflow as tf
 WIDTH = 84
 HEIGHT = 84
 
+#sess = tf.compat.v1.Session()
 
 #def set_frame_size(height, width):
     #def inner(func):
@@ -61,24 +62,29 @@ def numpy_mean(frame): # TODO WHY THE F*** DOES THIS LEAK MEMORY
     #return np.mean(np.array(frame), axis=2)[::2, ::2].astype(np.uint8)
     return np.mean(frame, axis=2)[::2, ::2].astype(np.uint8)
 
-
+@tf.function
 def tf_gray_scale(frame):
     gray_frame = tf.image.rgb_to_grayscale(frame)
-    return tf.image.resize(gray_frame, [HEIGHT, WIDTH])
+    #return tf.image.resize(gray_frame, [HEIGHT, WIDTH])
+    return tf.squeeze(tf.image.resize(gray_frame, [HEIGHT, WIDTH]))
 
 
-sess = tf.compat.v1.InteractiveSession()
+#sess = tf.compat.v1.InteractiveSession()
 
-@tf.function
+@tf.function #TODO learn more about tf.function
 def process_image(image):
     #image = tf.convert_to_tensor(image, dtype=tf.uint8)
     image_gray = tf.image.rgb_to_grayscale(image)
+    #tf.print(tf.shape(image))
+    #tf.print(tf.shape(image_gray))
+    #print(tf.shape(image_gray))
     # https://github.com/fg91/Deep-Q-Learning/blob/master/DQN.ipynb
     image_cropped = tf.image.crop_to_bounding_box(image_gray,
                                                   offset_height=34,
                                                   offset_width=0,
                                                   target_height=160,
                                                   target_width=160)
+                                                  #target_width=160)
     #image_rgb =  tf.cond(tf.rank(image) < 4,
                          #lambda: tf.image.grayscale_to_rgb(tf.expand_dims(image, -1)),
                          #lambda: tf.identity(image))
@@ -106,8 +112,13 @@ def convert_atari_frame(frame):
     #return numpy_mean(frame)
     #return np.mean(np.array(frame), axis=2)[::2, ::2].astype(np.uint8)
     #return down_numpy_gray_scale(frame)
-    #return tf_gray_scale(frame)
-    #return process_image(frame)
+    #print(tf.shape(frame))
     #return np.array(process_image(frame))
     #return np.array(test(frame))
+
+    #return process_image(frame).eval(session=sess)
+    #return process_image(frame)
+    #return tf_gray_scale(frame)
+
+
     return pil_crop_gray_scale(frame)
