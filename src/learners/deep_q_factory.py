@@ -86,6 +86,14 @@ class DeepQFactory:
                      build_model_function=DeepQFactory.vanilla_conv_build_model_raw, *args, **kwargs)
 
     @staticmethod
+    def create_deep_q(*args, **kwargs) -> DeepQ:
+        return DeepQ(name="Atari_Testing_Arch",
+                     #q_prime_function=DeepQFactory.vanilla_q_prime,
+                     q_prime_function=None, # TODO not used anymore
+                     build_model_function=DeepQFactory.vanilla_conv_build_model_raw, *args, **kwargs)
+
+
+    @staticmethod
     def create_atari_clipped_double_duel_deep_q(*args, **kwargs) -> DeepQ:
         return DeepQ(name="Atari_Testing_Arch",
                      #q_prime_function=DeepQFactory.vanilla_q_prime,
@@ -160,6 +168,7 @@ class DeepQFactory:
         #      this is basically a playground for building tensorflow models
         #input_dimensions = (int(input_dimensions[0])//2, int(input_dimensions[1])//2)
         input_dimensions = (84, 84) # TODO ... so bad
+        #input_dimensions = (105, 80) # TODO ... so bad
         #TODO test setting batch size for speedup
         state_frames = [Input(shape=input_dimensions, name=f"state_frame_{idx}", dtype=tf.uint8, batch_size=32) for idx in range(window)]
         action_selector_frames = [Input(shape=input_dimensions, name=f"action_selection_frame_{idx}", dtype=tf.uint8, batch_size=1) for idx in range(window)]

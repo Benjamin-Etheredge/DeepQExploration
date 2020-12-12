@@ -77,12 +77,7 @@ def play(
     agent = Agent(
         learner=learner,
         sample_size=sample_size,
-        replay_buffer=buffer_creator(max_length=end_length,
-                                     start_length=start_length,
-                                     alpha=alpha,
-                                     beta=beta,
-                                     alpha_inc=alpha_inc,
-                                     beta_inc=beta_inc),
+        replay_buffer=buffer_creator(max_length=end_length, start_length=start_length),
         environment=env,
         reward_threshold=reward_threshold,
         random_choice_decay_min=random_choice_min_rate,
@@ -119,8 +114,8 @@ if __name__ == "__main__":
     parser.add_argument("--max_episodes", default=999999999, help="None")
     parser.add_argument("--max_steps", default=40000000, help="None")
     parser.add_argument("--name_prefix", default='', help="None")
-    parser.add_argument("--experience_creator", default=Experience, help="None")
-    parser.add_argument("--buffer_creator", default=ReplayBuffer, help="None")
+    parser.add_argument("--experience_creator", default=Experience, help="TODO")
+    parser.add_argument("--buffer_creator", default=ReplayBuffer, help="TODO")
     #parser.add_argument("--data_func", default=None, help="None")
     parser.add_argument("--window", default=4, help="None")
     parser.add_argument("--target_network_interval", default=  32000, help="None")
@@ -132,7 +127,12 @@ if __name__ == "__main__":
     parser.add_argument("--frame_skip", default=4, help="None")
     
     # Learner Args
-    parser.add_argument("--learner_type", default="vanilla", help="")
+    parser.add_argument("--double", action='store_true', help="")
+    parser.add_argument("--duel", action='store_true', help="")
+    parser.add_argument("--clip_reward", action='store_true', help="")
+    parser.add_argument("--clipped_double", action='store_true', help="")
+    parser.add_argument("--prio", action='store_true', help="")
+    #parser.add_argument("--learner_type", default="vanilla", help="")
     parser.add_argument("--nodes_per_layer", default=512, help="")
     parser.add_argument("--layer_count", default=1, help="")
     parser.add_argument("--gamma", default=0.99, help="None")
@@ -142,64 +142,70 @@ if __name__ == "__main__":
     parser.add_argument("--conv_stride", default=[4, 2, 1], help="None")
 
     args = parser.parse_args()
-
-
+    print(args)
+    if int(args.verbose) >= 1:
+        #mlflow.start_run()
+        mlflow.log_params(vars(args))
 
         #double_deep_q=True, is_dueling=True, clipped_double_deep_q=True
     learner_args = {}
-    learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
-    if "vanilla" in args.learner_type:
-        learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
-        #learner = DeepQFactory.create_vanilla_deep_q()
-        pass
-    elif "double" in args.learner_type:
-        learner_args['double_deep_q'] = True
-        #learner = DeepQFactory.create_double_deep_q()
-        pass
-    elif args.learner_type == "clipped_double":
+    buffer_args = {}
+    #learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
+
+    learner_args['double_deep_q'] = args.double
+        
+    #learner = DeepQFactory.create_double_deep_q()
+    learner_args['is_dueling'] = args.duel
+
+    learner_args['clipped_double_deep_q'] = args.clipped_double
+    # TODO make this either or for double
         #learner = DeepQFactory.create_clipped_double_deep_q()
-        pass
-    elif args.learner_type == "clipped_double_duel":
-        #learner = DeepQFactory.create_atari_new_vanilla()
-        learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
-        learner_args['clipped_double_deep_q'] = True
-
-    elif args.learner_type == "duel":
-        learner_args['is_deuling'] = True
-        #learner = DeepQFactory.create_double_duel_deep_q()
-        pass
-    elif args.learner_type == "double_duel":
-        #learner = DeepQFactory.create_double_duel_deep_q()
-        pass
+    
+    learner_args['clip_reward'] = args.clip_reward
+    
+    if args.prio:
+        buffer_args['alpha'] = 0.6
+        buffer_args['beta'] = 0.4
+        buffer_args['alpha_inc'] = 0.6
+        buffer_args['beta_inc'] = 0.4
     else:
-        raise ValueError("Invalid learner_type")
+        buffer_args['alpha'] = 0
+        buffer_args['beta'] = 0
+        buffer_args['alpha_inc'] = 0
+        buffer_args['beta_inc'] = 0
+    
+    
 
-    print(args)
+    learner = DeepQFactory.create_deep_q(**learner_args)
+    #learner_args['learner'] = DeepQFactory.create_atari_new_vanilla()
+    # TODO pull out buffer constructions to make consistent
+
     play(
         name=args.environment,
-        #learner=learner,
+        learner=learner,
         nodes_per_layer=args.nodes_per_layer,
-        layer_count=args.layer_count,
-        learning_rate=args.learning_rate,
-        random_choice_min_rate=args.random_choice_min_rate,
-        sample_size=args.sample_size,
-        verbose=args.verbose,
-        max_episodes=args.max_episodes,
-        max_steps=args.max_steps,
+        layer_count=int(args.layer_count),
+        learning_rate=float(args.learning_rate),
+        random_choice_min_rate=float(args.random_choice_min_rate),
+        sample_size=int(args.sample_size),
+        verbose=int(args.verbose),
+        max_episodes=int(args.max_episodes),
+        max_steps=int(args.max_steps),
         name_prefix=args.name_prefix,
         experience_creator=args.experience_creator,
         buffer_creator=args.buffer_creator,
         #data_func=args.data_func,
-        window=args.window,
-        frame_skip=args.frame_skip,
-        target_network_interval=args.target_network_interval,
-        start_length=args.start_length,
-        end_length=args.end_length,
-        random_decay_end=args.random_decay_end,
+        window=int(args.window),
+        frame_skip=int(args.frame_skip),
+        target_network_interval=int(args.target_network_interval),
+        start_length=int(args.start_length),
+        end_length=int(args.end_length),
+        random_decay_end=float(args.random_decay_end),
         conv_nodes=args.conv_nodes,
         kernel_size=args.kernel_size,
         conv_stride=args.conv_stride,
-        **learner_args
+        **buffer_args
+        #**learner_args
     )
 
 
