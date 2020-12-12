@@ -107,6 +107,9 @@ def play(
     #best_score, rolling_average_score, steps = agent.play(max_episodes * max_episode_steps, verbose=verbose)
     #score = agent.score_model(100, verbose=0)
 
+    #agent.learner.model.load_weights("model.h5")
+    agent.learner.model.save_weights("final_model.h5")
+    mlflow.log_artifact("final_model.h5")
     return best_score, rolling_average_score, steps
 
 if __name__ == "__main__":
