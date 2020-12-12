@@ -141,10 +141,12 @@ class Agent:
         self.frame_skip = frame_skip  # TODO push to custom gym wrapper
         self.prepare_buffer()
 
+
     def seed(self):
         seed = self.np_random_state.randint(0, 9999)
         assert (seed >= 0)
         return seed
+
 
     # TODO figure out how to make verbose checking wrapper
     def metric_log(self, *args, **kwargs):
@@ -154,7 +156,7 @@ class Agent:
             self.tensorboard_writer.add_summary(summary, step)
             mlflow.log_metric(key=tag, value=value, step=step)
     
-    
+
     def log_artifict(self, artifact_path):
         if self.verbose >= 1:
             mlflow.log_artifact(artifact_path)
