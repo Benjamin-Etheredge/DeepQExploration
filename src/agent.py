@@ -6,6 +6,7 @@ from datetime import datetime
 from timeit import default_timer as timer
 import sys
 import os
+import mlflow
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import numpy as np
@@ -20,6 +21,7 @@ from numpy import clip, stack, array, power
 #from learners import *
 from learners import DeepQ
 from tensorflow_core.python.keras.api._v1 import keras
+#from tensorflow import keras # this breaks graph saving
 from copy import deepcopy
 import gym
 #from scores import *
@@ -40,6 +42,7 @@ if gpus:
 
 import tensorflow.compat.v1 as tf # this must go after due to FileWriter. TODO cleanup
 tf.disable_eager_execution()
+#tf.compat.v1.disable_eager_execution()
 
 # TODO process every 4th move
 
