@@ -131,6 +131,8 @@ class Agent:
         else:
             self.randomChoiceDecayRate = float(power(random_choice_decay_min, 1. / self.max_episodes))
         self.randomChoiceMinRate = random_choice_decay_min
+        self.is_slowed = False
+        self.random_choice_slow_down_point = (self.random_action_rate - self.randomChoiceMinRate) / 10.
         self.iterations = 0
         self.update_interval = 4
         self.frame_skip = frame_skip  # TODO push to custom gym wrapper
@@ -187,6 +189,9 @@ class Agent:
         if self.decay_type == 'linear':
             self.random_action_rate = max(self.randomChoiceMinRate,
                                           (self.random_action_rate - self.randomChoiceDecayRate))
+            if not self.is_slowed and self.random_action_rate <= self.random_choice_slow_down_point:
+                self.randomChoiceDecayRate /= 10
+                self.is_slowed = True
         else:
             self.random_action_rate = max(self.randomChoiceMinRate,
                                           (self.randomChoiceDecayRate * self.random_action_rate))
