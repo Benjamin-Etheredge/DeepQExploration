@@ -41,6 +41,10 @@ def play(
               start_length=200000,
               end_length=1000000,
               random_decay_end=4000000,  # Decay rate used for DQN in Rainbow.
+              alpha=0.6,
+              beta=0.4,
+              alpha_inc=0.000025,
+              beta_inc=0.000025,
               *args, **kwargs):
 
     # Seed random variables
