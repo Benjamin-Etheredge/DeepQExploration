@@ -387,9 +387,10 @@ class Agent:
                     # TODO should make random, but breakout has a STUPID fucking mechanic
                     # step, _, done, _ = self.scoring_env.step(self.get_random_action())
                     step, _, done, _ = self.scoring_env.step(1)
-                    step = self.observation_processor(step)
+                    #step = self.observation_processor(step)
                     #list_buffer.append(step)  # TODO should i be letting the list_buffer see these? probably not
                     #list_buffer.pop(0)
+                step = self.observation_processor(step)
                 list_buffer = [step for _ in range(self.window + 1)]
                 is_terminal = False  # maybe not needed
 
