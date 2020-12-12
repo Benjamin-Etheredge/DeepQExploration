@@ -1,3 +1,4 @@
+# TODO make target model update callback
 import numpy as np
 np.random.seed(4)
 import random
@@ -5,13 +6,15 @@ random.seed(4)
 import tensorflow as tf
 
 import buffer
+from experience import Experience
 
 # TODO subclass keras model
 class DeepQ:
     def __init__(self,
                  name,
                  q_prime_function,
-                 build_model_function):
+                 build_model_function,
+                 **kwargs):
 
         self.name = name
         self.q_prime_function = q_prime_function
@@ -21,6 +24,7 @@ class DeepQ:
 
         self.model = None
         self.target_model = None
+        self.in_kwargs = kwargs
         #log_dir = f"logs/{self.name}" + datetime.now().strftime("%Y%m%d-%H%M%S")
         #self.tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
         #self.update_count = 0
@@ -38,7 +42,8 @@ class DeepQ:
                                           #nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
         self.model, self.target_model, self.action_selector = \
                 self.build_model_function(input_dimension, output_dimension,
-                                          nodes_per_layer, layer_count, learning_rate, *args, **kwargs)
+                                          nodes_per_layer, layer_count, learning_rate,
+                                          *args, **self.in_kwargs, **kwargs)
         #self.autoencoder = ConvAutoencoder.build(*input_dimension)
         #tf.summary.
         #self.model.name = "Live_Network"
@@ -60,7 +65,6 @@ class DeepQ:
     def log(self):
         pass
 
-    #@jit
     def get_next_action(self, state):
         # TODO this is terrible.... refactor. I just want it to run right now
         np_state = np.array(state)
@@ -77,8 +81,7 @@ class DeepQ:
         # target_prime_action_values = self.targetModel.predict(statePrimes)
         # return target_prime_action_values
 
-    #@jit
-    def update(self, sample: buffer.VoidBuffer):
+    def update(self, sample: buffer.VoidBuffer, weights):
         # TODO refactor
         #TODO combine model predections
         #states = np.array(sample.states)
@@ -88,14 +91,19 @@ class DeepQ:
         #im = Image.fromarray(states[4, :, :, :3])
         #im.save("img2.jpeg")
 
-        states, actions, next_states, rewards, is_dones = sample.training_items()
+        states, actions, next_states, rewards, is_dones = sample
         #losses = self.train.train_on_batch(sample.training_items)
         #losses = self.train.train_on_batch(*sample.training_items())
 
         #next_states = np.array(sample.next_states)
         #action_values = self.model.predict_on_batch(np.concatenate((states, next_states), axis=0))
         #current_all_action_values, current_all_prime_action_values = np.split(action_values, 2)
-        losses = self.model.train_on_batch([*states, actions, *next_states, rewards, is_dones], reset_metrics=False)
+        losses = self.model.train_on_batch(
+            x=[*states, actions, *next_states, rewards, is_dones],
+            #y=np.array(range(len(actions))),
+            reset_metrics=False, # not currenlty using metrics
+            sample_weight=np.array(weights)
+        )
         #print(len(states))
         #print(len(states[0]))
 

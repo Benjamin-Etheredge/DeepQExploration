@@ -77,7 +77,12 @@ def play(
     agent = Agent(
         learner=learner,
         sample_size=sample_size,
-        replay_buffer=buffer_creator(max_length=end_length, start_length=start_length),
+        replay_buffer=buffer_creator(max_length=end_length,
+                                     start_length=start_length,
+                                     alpha=alpha,
+                                     beta=beta,
+                                     alpha_inc=alpha_inc,
+                                     beta_inc=beta_inc),
         environment=env,
         reward_threshold=reward_threshold,
         random_choice_decay_min=random_choice_min_rate,
