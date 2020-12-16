@@ -12,6 +12,7 @@ import custom_mlflow_logger
 
 import numpy as np
 np.random.seed(4)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.random.set_seed(4)
 import random
