@@ -1,0 +1,47 @@
+name: deep-q
+
+# Can have a docker_env instead of a conda_env, e.g.
+docker_env:
+  image: betheredge/gym_dev
+  environment: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "MLFLOW_S3_ENDPOINT_URL", "MLFLOW_TRACKING_URI"]
+
+entry_points:
+  main:
+    parameters:
+      environment: {type: string, default: "Breakout-v4"}
+      random_choice_min_rate: {type: float, default: 0.01}
+      sample_size: {type: int, default: 32}
+      verbose: {type: int, default: 1}
+      max_episodes: {type: int, default: 999999999}
+      max_steps: {type: int, default: 40000000}
+      name_prefix: {type: string, default: ""}
+      window: {type: int, default: 4}
+      target_network_interval: {type: int, default: 32000}
+      start_length: {type: int, default:  200000}
+      end_length: {type: int, default: 1000000}
+      random_decay_end: {type: int, default: 4000000}
+
+      # Agent Args
+      frame_skip: {type: int, default: 4}
+
+    command: "python src/main.py 
+              --environment {environment} 
+              --random_choice_min_rate {random_choice_min_rate}
+              --sample_size {sample_size}
+              --verbose {verbose}
+              --max_episodes {max_episodes}
+              --max_steps {max_steps}
+              --name_prefix {name_prefix}
+              --window {window}
+              --target_network_interval {target_network_interval}
+              --start_length {start_length}
+              --end_length {end_length}
+              --random_decay_end {random_decay_end}
+              --frame_skip {frame_skip}
+              --duel
+              --double
+              --clip_reward
+              --prio"
+    all:
+      worker: {type: int, default: 2}
+      commmand:
