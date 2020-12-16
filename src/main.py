@@ -6,6 +6,7 @@ from buffer import *
 import argparse
 from utils.utils import convert_atari_frame
 import mlflow
+#mlflow.autolog() not really needed. Also makes random metrics appear due to how I logged before
 
 # create logger with 'spam_application'
 
