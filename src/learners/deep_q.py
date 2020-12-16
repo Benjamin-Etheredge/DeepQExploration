@@ -3,7 +3,12 @@ import numpy as np
 np.random.seed(4)
 import random
 random.seed(4)
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+tf.get_logger().setLevel('INFO')
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+#tf.logging.set_verbosity(tf.logging.ERROR)
 
 import buffer
 from experience import Experience
