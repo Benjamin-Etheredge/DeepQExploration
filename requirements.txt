@@ -35,7 +35,7 @@ oauthlib==3.1.0
 objgraph==3.4.1
 opencv-python==4.2.0.34
 opt-einsum==3.1.0
-Pillow==7.1.1
+Pillow==8.1.1
 protobuf==3.11.2
 psutil==5.7.0
 pyasn1==0.4.8
