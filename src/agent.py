@@ -174,10 +174,6 @@ class Agent:
     def metric_log(self, *args, **kwargs):
         if self.verbose >= 1:
             tag, value, step = kwargs['name'], kwargs['data'], kwargs['step']
-            summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
-            self.tensorboard_writer.add_summary(summary, step)
-            #mlflow.log_metric(key=f"old_{tag}", value=value, step=step)
-            #custom_mlflow_logger.log_metric(key=tag, value=value, step=step)
             custom_mlflow_logger.Logger.log_metric(key=tag, value=value, step=step)
     
 
