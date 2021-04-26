@@ -90,6 +90,8 @@ class Agent:
         self.learner = learner
         self.replay_buffer = replay_buffer
         self.env = environment
+        self.recording = False
+        #self.env = gym.Wrapper
         self.env.frameskip = frame_skip
         #self.env.seed(self.seed())
         self.env.seed(seed)
@@ -145,6 +147,13 @@ class Agent:
         self.iterations = 0
         self.update_interval = 4
         self.frame_skip = frame_skip  # TODO push to custom gym wrapper
+        # add on-policy recording
+        self.env = gym.wrappers.Monitor(self.env, 'videos/on-policy', video_callable=lambda _: self.on_policy_check_time(), uid='on-policy', force=True)
+
+        # add interval recording
+        self.record_interval = 250
+        self.env = gym.wrappers.Monitor(self.env, 'videos/', video_callable=lambda _: self.game_count % self.record_interval == 0, force=True)
+
         self.prepare_buffer()
 
 
