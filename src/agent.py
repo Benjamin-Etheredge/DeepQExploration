@@ -157,6 +157,10 @@ class Agent:
         self.prepare_buffer()
 
 
+    def on_policy_check_time(self):
+            return self.game_count % self.on_policy_check_interval == 0
+
+
     def seed(self):
         seed = self.np_random_state.randint(0, 9999)
         assert (seed >= 0)
@@ -253,7 +257,7 @@ class Agent:
         moving_average = 0
         while total_steps <= step_limit and self.max_episodes > game_count:
 
-            if game_count % self.on_policy_check_interval == 0:
+            if self.on_policy_check_time():
                 # Use max instead of min to be closer to the other publications
                 # on_policy_score = np.mean([self.play_game(random_rate=0.0) for _ in range(4)])
                 on_policy_scores = [self.play_game(random_rate=0.0) for _ in range(4)]
