@@ -147,6 +147,9 @@ class Agent:
         self.iterations = 0
         self.update_interval = 4
         self.frame_skip = frame_skip  # TODO push to custom gym wrapper
+
+        self.game_count = 0
+
         # add on-policy recording
         self.env = gym.wrappers.Monitor(self.env, 'videos/on-policy', video_callable=lambda _: self.on_policy_check_time(), uid='on-policy', force=True)
 
@@ -251,11 +254,10 @@ class Agent:
 
         best_on_policy_score = float("-inf")
         best_off_policy_score = float("-inf")
-        game_count = 0
         total_steps = 0
         rolling_average_scores = deque([], maxlen=200)
         moving_average = 0
-        while total_steps <= step_limit and self.max_episodes > game_count:
+        while total_steps <= step_limit and self.max_episodes > self.game_count:
 
             if self.on_policy_check_time():
                 # Use max instead of min to be closer to the other publications
@@ -276,7 +278,8 @@ class Agent:
                 self.metric_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
                 self.metric_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
-            game_count += 1
+
+            self.game_count += 1
 
             # TODO extract process to method
             step = self.observation_processor(self.env.reset())
