@@ -177,7 +177,7 @@ class Agent:
             custom_mlflow_logger.Logger.log_metric(key=tag, value=value, step=step)
     
 
-    def log_artifict(self, artifact_path):
+    def log_artifact(self, artifact_path):
         if self.verbose >= 1:
             mlflow.log_artifact(artifact_path)
 
@@ -265,15 +265,16 @@ class Agent:
                     best_on_policy_score = max_on_policy_score
                     self.metric_log(name="best_on_policy_score", data=best_on_policy_score, step=total_steps)
                     self.learner.model.save_weights("best_on_policy_model.h5")
-                    mlflow.log_artifact("best_on_policy_model.h5")
+                    self.log_artifact("best_on_policy_model.h5")
                     if verbose > 2:
                         # https://github.com/openai/gym/wiki/FAQ
-                        
-                        env = gym.wrappers.Monitor(env, '.videos/' + str(time()) + '/')
+                        #env = gym.wrappers.Monitor(env, '.videos/' + str(time()) + '/')
+                        pass
 
                 self.metric_log(name="median_on_policy_score", data=median_on_policy_score, step=total_steps)
                 self.metric_log(name="max_on_policy_score_per_frames", data=max_on_policy_score, step=total_steps)
 
+                self.log_artifact("videos")
 
             self.game_count += 1
 
@@ -367,22 +368,23 @@ class Agent:
                 best_off_policy_score = total_reward
                 self.metric_log(name="best_off_policy_score_per_frames", data=best_off_policy_score, step=total_steps)
                 self.learner.model.save_weights("best_off_policy_model.h5")
-                mlflow.log_artifact("best_off_policy_model.h5")
+                self.log_artifact("best_off_policy_model.h5")
             rolling_average_scores.append(total_reward)
             rolling_average = np.mean(rolling_average_scores)
             self.metric_log(name="rolling_average", data=rolling_average, step=total_steps)
             self.metric_log(name="move_per_second", data=moves_per_second, step=total_steps)
             self.metric_log(name="best_off_policy_score", data=best_off_policy_score, step=total_steps)
             self.metric_log(name="off_policy_score", data=total_reward, step=total_steps)
-            self.metric_log(name="steps_per_game", data=game_steps, step=game_count)
+            self.metric_log(name="steps_per_game", data=game_steps, step=self.game_count)
             #moving_average -= moving_average / game_count
             #moving_average += total_reward / game_count
             #self.metric_log(name="moving_average", data=moving_average, step=total_steps)
 
             self.metric_log(name="epsilon_rate", data=self.random_action_rate, step=total_steps)
-            self.metric_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=game_count)
-            self.metric_log(name="total steps", data=total_steps, step=game_count)
+            self.metric_log(name="buffer_size_in_experiences", data=len(self.replay_buffer), step=self.game_count)
+            self.metric_log(name="total steps", data=total_steps, step=self.game_count)
 
+        self.log_artifact("videos")
         assert total_steps > 0
         return best_off_policy_score, rolling_average, total_steps
 
