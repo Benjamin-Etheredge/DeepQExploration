@@ -4,6 +4,5 @@ ffmpeg-python==0.2.0
 matplotlib==3.3.4
 gym==0.18.0
 numpy==1.19.2
-ffmpeg==1.4
 Pillow<=7.2.0
 boto3==1.17.57
