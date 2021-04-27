@@ -5,4 +5,4 @@ matplotlib==3.3.4
 gym==0.18.0
 numpy==1.19.2
 ffmpeg==1.4
-Pillow==8.2.0
+Pillow<=7.2.0
