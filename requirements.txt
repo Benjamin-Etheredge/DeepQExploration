@@ -6,3 +6,4 @@ gym==0.18.0
 numpy==1.19.2
 ffmpeg==1.4
 Pillow<=7.2.0
+botocore==1.19.57
