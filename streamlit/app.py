@@ -62,7 +62,7 @@ def get_score_history(exp_name):
    exp_id = experiment.experiment_id
    run_id = find_best_run(exp_id)
 
-   data = client.get_metric_history(run_id, 'off_policy_hightlight_score')
+   data = client.get_metric_history(run_id, 'off_policy_highlight_score')
    data = [item.value for item in data]
    return data
 
