@@ -8,6 +8,7 @@ import ffmpeg
 import uuid
 
 
+@st.cache()
 def find_best_run(exp_id, metric='best_off_policy_score'):
    client = mlflow.tracking.MlflowClient()
    run_infos = client.list_run_infos(exp_id)
@@ -39,13 +40,13 @@ def get_recordings(exp_name):
 
    shutil.rmtree('/tmp/videos', ignore_errors=True)
    os.mkdir('/tmp/videos')
-   videos = client.download_artifacts('468b5809130845489da3170239aa1bcd', 'off_policy_highlights', dst_path='/tmp/videos')
+   videos = client.download_artifacts(best_run_id, 'off_policy_highlights', dst_path='/tmp/videos')
    #model_path = client.download_artifacts(best_run_id, 'best_model', dst_path='/tmp/')
    return videos
 
    #st.write(run_infos[0])
    # TODO query for this
-   #model_artifiact = client.download_artifacts(os.environ['RUN_ID'], 'best_on_policy_model.h5'], dst_path='/tmp')
+   #model_artifiact = client.download_artifacts('468b5809130845489da3170239aa1bcd', 'best_on_policy_model.h5'], dst_path='/tmp')
    #model = tf.keras.load_model(model_artifiact)
    #return model
 
@@ -53,14 +54,14 @@ iteration_finder = re.compile(r'(\d+).mp4$')
 def get_iteration(path):
       return iteration_finder.search(str(path)).group(1)
 
+@st.cache()
 def get_score_history(exp_name):
    client = mlflow.tracking.MlflowClient()
    experiment = client.get_experiment_by_name(exp_name)
    #st.write(experiment)
    exp_id = experiment.experiment_id
-   #best_run_id = find_best_run(exp_id)
+   run_id = find_best_run(exp_id)
 
-   run_id = '468b5809130845489da3170239aa1bcd'
    data = client.get_metric_history(run_id, 'off_policy_hightlight_score')
    data = [item.value for item in data]
    return data
@@ -97,7 +98,7 @@ st.title("Deep-Q Experiments")
 #st.video('/tmp/text.mp4')
 
 
-for exp_name in ['breakout']:
+for exp_name in ['breakout', 'pong', 'space']:
    with st.beta_expander(exp_name):
       file = create_highlights(exp_name)
       st.video(file)
